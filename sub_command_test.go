@@ -38,6 +38,6 @@ func TestNewSubCommand(t *testing.T) {
 	}
 }
 
-func TestValidate(t *testing.T) {
+func TestSubCommandValidate(t *testing.T) {
 
 }

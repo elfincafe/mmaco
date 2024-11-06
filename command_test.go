@@ -34,7 +34,7 @@ func (c cmd3) Run() error {
 	return nil
 }
 
-func TestAddSubCommand(t *testing.T) {
+func TestCommandAddSubCommand(t *testing.T) {
 	// Cases
 	cases := []struct {
 		name string
@@ -72,7 +72,7 @@ func TestAddSubCommand(t *testing.T) {
 	}
 }
 
-func TestConvSubCommandName(t *testing.T) {
+func TestCommandConvSubCommandName(t *testing.T) {
 	// Cases
 	cases := []struct {
 		name string
@@ -98,9 +98,9 @@ func TestConvSubCommandName(t *testing.T) {
 	}
 }
 
-func TestRoute(t *testing.T) {
+func TestCommandRoute(t *testing.T) {
 }
 
-func TestRun(t *testing.T) {
+func TestCommandRun(t *testing.T) {
 
 }

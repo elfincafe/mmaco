@@ -1,14 +1,15 @@
 package mmaco
 
-type (
-	opts struct {
-	}
-)
+import "testing"
 
-func newOpts(metas []meta) opts {
-	return opts{}
+func TestNewOpts(t *testing.T) {
+
 }
 
-func (o opts) parse(args []string) error {
-	return nil
+func TestOptsName(t *testing.T) {
+
+}
+
+func TestOptsParse(t *testing.T) {
+
 }
