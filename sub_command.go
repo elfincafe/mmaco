@@ -3,39 +3,37 @@ package mmaco
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 )
 
 type (
 	subCommand struct {
 		cmd  reflect.Value
-		meta meta
+		meta *meta
 	}
 )
 
-func newSubCommand(s any) subCommand {
-	sc := subCommand{}
+func newSubCommand(s SubCommandInterface) *subCommand {
+	sc := new(subCommand)
 	sc.cmd = reflect.ValueOf(s)
-	sc.meta = meta{}
+	sc.meta = newMeta()
 	return sc
 }
 
 func (sc *subCommand) validate() error {
-	// Init, Validate
-	for _, method := range []string{"Init", "Validate"} {
-		m := sc.cmd.MethodByName(method)
-		if m.IsValid() {
-			if m.Kind() != reflect.Func || m.Type().NumOut() != 1 || m.Type().Out(0).String() != "error" {
-				return fmt.Errorf(`%s.Run field is NOT a method which must returns only an error`, sc.cmd.Type())
-			}
-		}
-	}
-	// Run
-	run := sc.cmd.MethodByName("Run")
-	if !run.IsValid() {
-		return fmt.Errorf(`%s has no "Run" method`, sc.cmd.Type())
-	}
-	if run.Kind() != reflect.Func || run.Type().NumOut() != 1 || run.Type().Out(0).String() != "error" {
-		return fmt.Errorf(`%s.Run field is NOT a method which must returns only an error`, sc.cmd.Type())
+	// Name rules
+	name := sc.Name()
+	re := regexp.MustCompile(`^[a-zA-Z][\w_]*[0-9a-zA-Z]$`)
+	if !re.MatchString(name) {
+		return fmt.Errorf("SubCommand name '%s' is't doesn't follow the rule", name)
 	}
 	return nil
+}
+
+func (sc *subCommand) Name() string {
+	ret := sc.cmd.MethodByName("Name").Call([]reflect.Value{})
+	if len(ret) > 0 {
+		return ret[0].String()
+	}
+	return ""
 }

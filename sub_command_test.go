@@ -1,12 +1,14 @@
 package mmaco
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
 
 type (
 	sc1 struct {
+		name string
 		opt1 bool `mmaco:"short:"`
 	}
 )
@@ -39,5 +41,22 @@ func TestNewSubCommand(t *testing.T) {
 }
 
 func TestSubCommandValidate(t *testing.T) {
+	sc := newSubCommand(sc1{})
+	sc.validate()
+}
 
+func TestSubCommandGetName(t *testing.T) {
+	cases := []struct {
+		st   SubCommandInterface
+		name string
+	}{
+		{st: sc1{name: "123"}, name: ""},
+	}
+	for i, c := range cases {
+		sc := newSubCommand(c.st)
+		fmt.Println("**", sc.Name(), "**")
+		if sc.Name() != c.name {
+			t.Errorf("[%d] Expected: %v, Returned: %v", i, c.name, sc.Name())
+		}
+	}
 }

@@ -7,6 +7,7 @@ import (
 
 type (
 	meta struct {
+		kind     reflect.Kind
 		short    string
 		long     string
 		required bool
@@ -16,31 +17,35 @@ type (
 	}
 )
 
-func newMeta() meta {
-	return meta{
-		short:    "",
-		long:     "",
-		required: false,
-		desc:     "",
-		value:    "",
-		handler:  "",
-	}
+func newMeta() *meta {
+	m := new(meta)
+	m.kind = reflect.Invalid
+	m.short = ""
+	m.long = ""
+	m.required = false
+	m.desc = ""
+	m.value = ""
+	m.handler = ""
+	return m
 }
 
-func getMetas(t reflect.Type) map[string]meta {
-	metas := map[string]meta{}
+func getMetas(t reflect.Type) map[string]*meta {
+	metas := map[string]*meta{}
 	for i := 0; i < t.NumField(); i++ {
 		name := t.Field(i).Name
+		kind := t.Field(i).Type.Kind()
 		content := t.Field(i).Tag.Get(tagName)
 		if content == "" {
 			continue
 		}
-		metas[name] = getMeta(content)
+		meta := getMeta(content)
+		meta.kind = kind
+		metas[name] = meta
 	}
 	return metas
 }
 
-func getMeta(content string) meta {
+func getMeta(content string) *meta {
 	meta := newMeta()
 	contents := strings.Split(content, ",")
 	key := ""

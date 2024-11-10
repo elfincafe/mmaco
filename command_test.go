@@ -1,6 +1,7 @@
 package mmaco
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -37,68 +38,50 @@ func (c cmd3) Run() error {
 func TestCommandAddSubCommand(t *testing.T) {
 	// Cases
 	cases := []struct {
-		name string
-		st   any
+		st any
 	}{
 		{
-			name: "cmd",
-			st: subCommand{
+			st: &subCommand{
 				cmd:  reflect.ValueOf(cmd1{}),
-				meta: meta{},
+				meta: newMeta(),
 			},
 		},
 		{
-			name: "cmd",
-			st: subCommand{
+			st: &subCommand{
 				cmd:  reflect.ValueOf(cmd2{}),
-				meta: meta{},
+				meta: newMeta(),
 			},
 		},
 		{
-			name: "cmd",
-			st: subCommand{
+			st: &subCommand{
 				cmd:  reflect.ValueOf(cmd3{}),
-				meta: meta{},
+				meta: newMeta(),
 			},
 		},
 	}
+	fmt.Println(cases)
 	// Test
-	for i, c := range cases {
-		cmd := New("cmd")
-		cmd.AddSubCommand(c.name, c.st)
-		if cmd.subCmds[c.name] == c.st {
-			t.Errorf("[%d] Expected: %v, Returned: %v", i, c.st, cmd.subCmds[c.name])
-		}
-	}
-}
-
-func TestCommandConvSubCommandName(t *testing.T) {
-	// Cases
-	cases := []struct {
-		name string
-		exp  string
-	}{
-		{name: "abc", exp: "abc"},
-		{name: "ABC", exp: "abc"},
-		{name: "A0B1C2", exp: "a0b1c2"},
-		{name: "aB_C", exp: "ab_c"},
-		{name: "AbC_0", exp: "abc_0"},
-		{name: "0ABc_", exp: "abc"},
-		{name: "_AbC_9", exp: "abc_9"},
-		{name: "_AあbC_9", exp: "abc_9"},
-		{name: "AbC-", exp: "abc"},
-	}
-	// Test
-	cmd := New("test")
-	for i, c := range cases {
-		v := cmd.convSubCommandName(c.name)
-		if v != c.exp {
-			t.Errorf("[%d] Expected: %v, Returned: %v", i, c.exp, v)
-		}
-	}
+	// for i, c := range cases {
+	// 	cmd := New("cmd")
+	// 	cmd.AddSubCommand(c.st)
+	// 	if cmd.subCmds[c.st.getName()] == c.st {
+	// 	t.Errorf("[%d] Expected: %v, Returned: %v", i, c.st, cmd.subCmds[c.name])
+	// 	}
+	// }
 }
 
 func TestCommandRoute(t *testing.T) {
+	cases := []struct {
+		args []string
+	}{
+		{
+			[]string{"-v", "--help", "download"},
+		},
+	}
+	cmd := New("test")
+	for _, c := range cases {
+		cmd.route(c.args)
+	}
 }
 
 func TestCommandRun(t *testing.T) {

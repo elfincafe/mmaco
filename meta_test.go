@@ -9,6 +9,9 @@ import (
 
 func TestNewMeta(t *testing.T) {
 	m := newMeta()
+	if m.kind != reflect.Invalid {
+		t.Errorf("Type: %v", m.kind)
+	}
 	if m.short != "" {
 		t.Errorf("Short: %v", m.short)
 	}
