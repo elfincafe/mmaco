@@ -9,18 +9,20 @@ import (
 type (
 	sc1 struct {
 		name string
-		opt1 bool `mmaco:"short:"`
 	}
 )
 
-func (s *sc1) Init() error {
+func (s sc1) Init() error {
 	return nil
 }
-func (s *sc1) Validate() error {
+func (s sc1) Validate() error {
 	return nil
 }
-func (s *sc1) Run() error {
+func (s sc1) Run() error {
 	return nil
+}
+func (s sc1) Name() string {
+	return s.name
 }
 
 func TestNewSubCommand(t *testing.T) {
