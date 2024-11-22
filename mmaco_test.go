@@ -2,8 +2,31 @@ package mmaco
 
 import "testing"
 
+type (
+	subCmdTest struct {
+	}
+)
+
+func (sc subCmdTest) Init() error {
+	return nil
+}
+func (sc subCmdTest) Validate(args []string) error {
+	return nil
+}
+func (sc subCmdTest) Run(args []string) error {
+	return nil
+}
+
 func TestMain(m *testing.M) {
-	println("前処理")
+	setup()
 	m.Run()
-	println("前処理")
+	cleanup()
+}
+
+func setup() {
+
+}
+
+func cleanup() {
+
 }
