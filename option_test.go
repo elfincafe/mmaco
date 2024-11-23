@@ -300,6 +300,7 @@ func TestOptionDesc(t *testing.T) {
 		f4 string `mmaco:"short=f,default=default, test,desc=description, test,long=field"`
 		f5 string `mmaco:"default=default, test,desc=description, test,long=field,short=f"`
 		f6 string `mmaco:"long=field,short=f,desc=description, test,default=default, test"`
+		f7 string `mmaco:"long=field,short=f,default=default, test"`
 	}
 	v := reflect.ValueOf(st{})
 	cases := []struct {
@@ -313,6 +314,7 @@ func TestOptionDesc(t *testing.T) {
 		{field: v.Type().Field(4), expected: "description, test"},
 		{field: v.Type().Field(5), expected: "description, test"},
 		{field: v.Type().Field(6), expected: "description, test"},
+		{field: v.Type().Field(7), expected: ""},
 	}
 	// Test
 	for i, c := range cases {
@@ -325,7 +327,73 @@ func TestOptionDesc(t *testing.T) {
 }
 
 func TestOptionDefault(t *testing.T) {
+	// Test Case
+	type st struct {
+		f0 string `mmaco:"default=default, test"`
+		f1 string `mmaco:"short=f,default=default, test,long=field"`
+		f2 string `mmaco:"default=default, test,long=field,short=f"`
+		f3 string `mmaco:"long=field,short=f,default=default, test"`
+		f4 string `mmaco:"short=f,desc=description, test,default=default, test,long=field"`
+		f5 string `mmaco:"desc=description, test,default=default, test,long=field,short=f"`
+		f6 string `mmaco:"long=field,short=f,default=default, test,desc=description, test"`
+		f7 string `mmaco:"long=field,short=f,desc=description, test"`
+	}
+	v := reflect.ValueOf(st{})
+	cases := []struct {
+		field    reflect.StructField
+		expected string
+	}{
+		{field: v.Type().Field(0), expected: "default, test"},
+		{field: v.Type().Field(1), expected: "default, test"},
+		{field: v.Type().Field(2), expected: "default, test"},
+		{field: v.Type().Field(3), expected: "default, test"},
+		{field: v.Type().Field(4), expected: "default, test"},
+		{field: v.Type().Field(5), expected: "default, test"},
+		{field: v.Type().Field(6), expected: "default, test"},
+		{field: v.Type().Field(7), expected: ""},
+	}
+	// Test
+	for i, c := range cases {
+		o := newOption(c.field)
+		o.parseTag()
+		if o.Default() != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Default())
+		}
+	}
 }
 
 func TestOptionHandler(t *testing.T) {
+	// Test Case
+	type st struct {
+		f0 string `mmaco:"handler=Parse"`
+		f1 string `mmaco:"handler=Parse,short=f"`
+		f2 string `mmaco:"long=field,handler=Parse,required"`
+		f3 string `mmaco:"desc=desc,with,comma,handler=Parse,required"`
+		f4 string `mmaco:"required,handler=Parse,desc=desc,with,comma"`
+		f5 string `mmaco:"handler=Parse,short=ff,long=f,required"`
+		f6 string `mmaco:"desc=desc,with,comma,long=f,required,handler=Parse"`
+		f7 string `mmaco:"required,long=f,desc=desc,with,comma"`
+	}
+	v := reflect.ValueOf(st{})
+	cases := []struct {
+		field    reflect.StructField
+		expected string
+	}{
+		{field: v.Type().Field(0), expected: "Parse"},
+		{field: v.Type().Field(1), expected: "Parse"},
+		{field: v.Type().Field(2), expected: "Parse"},
+		{field: v.Type().Field(3), expected: "Parse"},
+		{field: v.Type().Field(4), expected: "Parse"},
+		{field: v.Type().Field(5), expected: "Parse"},
+		{field: v.Type().Field(6), expected: "Parse"},
+		{field: v.Type().Field(7), expected: ""},
+	}
+	// Test
+	for i, c := range cases {
+		o := newOption(c.field)
+		o.parseTag()
+		if o.Handler() != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Handler())
+		}
+	}
 }
