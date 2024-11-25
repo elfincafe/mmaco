@@ -4,21 +4,8 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"regexp"
-	"strconv"
+	"strings"
 	"time"
-)
-
-type (
-	Command struct {
-		Name    string
-		subCmds map[string]*subCommand
-		subCmd  string
-		scOrder []string
-		start   time.Time
-		Help    bool `mmaco:"short=h,long=help"`
-		Verbose bool `mmaco:"short=v,long=verbose"`
-	}
 )
 
 func New(name string) *Command {
@@ -28,41 +15,75 @@ func New(name string) *Command {
 	cmd.subCmds = map[string]*subCommand{}
 	cmd.subCmd = ""
 	cmd.scOrder = []string{}
+	cmd.opts = []*option{}
 	return cmd
 }
 
-func (cmd *Command) Add(name string, subCmd SubCommandInterface) error {
-	sc := newSubCommand(subCmd)
-	re := regexp.MustCompile(`^[a-z][0-9a-z_\-]*[0-9a-z]?$`)
-	if !re.MatchString(name) {
-		return fmt.Errorf("the sub command does not follow the format (^[a-z][0-9a-z_-]*[0-9a-z]?$)")
+func (cmd *Command) parse() {
+	ref := reflect.TypeOf(cmd).Elem()
+	for i := 0; i < ref.NumField(); i++ {
+		opt := newOption(ref.Field(i))
+		if opt != nil {
+			cmd.opts = append(cmd.opts, opt)
+		}
 	}
+}
+
+func (cmd *Command) Add(subCmd SubCommandInterface) {
+	sc := newSubCommand(subCmd)
+	sc.parse()
+	name := toSnakeCase(sc.Name())
 	cmd.subCmds[name] = sc
-	return nil
+	exists := false
+	for _, v := range cmd.scOrder {
+		if name == v {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		cmd.scOrder = append(cmd.scOrder, name)
+	}
 }
 
 func (cmd *Command) route(args []string) error {
-	// var err error
-
-	// c := reflect.ValueOf(cmd)
-	// metas := getMetas(c.Type())
-
-	// Root Options
-	opts := []string{"-h", "--help", "-v", "--verbose"}
+	var err error
 	idx := 0
+	skip := false
 	for i, arg := range args {
 		ok := false
-		for _, opt := range opts {
-			if arg == opt {
-				ok = true
+		if skip {
+			continue
+		}
+		for _, opt := range cmd.opts {
+			if arg == opt.short {
+				if opt.Kind() == Bool {
+					// setArg(&opt.field, opt.Short(), "true")
+				} else if opt.Kind() != Unknown {
+					// setArg(&opt.field, opt.Short(), args[i+1])
+				} else {
+
+				}
+				break
+			} else if arg == opt.long {
+				if opt.Kind() == Bool {
+					// err = setArg()
+				}
+				break
+			} else if strings.HasPrefix(arg, opt.long+"=") {
+				length := len(opt.long + "=")
+				// err = setArg(opt.field, arg[length:])
 				break
 			}
 		}
 		if ok {
 			idx = i + 1
+		} else {
+			break
 		}
 	}
 	fmt.Println(args[:idx], idx, len(args[idx:]))
+	os.Exit(123)
 
 	// SubCommand
 	if len(args[idx:]) > 0 {
@@ -140,90 +161,6 @@ func (cmd *Command) route(args []string) error {
 	// 	return err
 }
 
-func (cmd *Command) setArg(field *reflect.Value, opt, value string) error {
-	switch field.Kind() {
-	case reflect.Bool:
-		field.SetBool(true)
-	case reflect.Int:
-		v, err := strconv.ParseInt(value, 10, 0)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int type", opt)
-		}
-		field.SetInt(v)
-	case reflect.Int8:
-		v, err := strconv.ParseInt(value, 10, 8)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int8 type", opt)
-		}
-		field.SetInt(v)
-	case reflect.Int16:
-		v, err := strconv.ParseInt(value, 10, 16)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int16 type", opt)
-		}
-		field.SetInt(v)
-	case reflect.Int32:
-		v, err := strconv.ParseInt(value, 10, 32)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int32 type", opt)
-		}
-		field.SetInt(v)
-	case reflect.Int64:
-		v, err := strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int64 type", opt)
-		}
-		field.SetInt(v)
-	case reflect.Uint:
-		v, err := strconv.ParseUint(value, 10, 0)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint type", opt)
-		}
-		field.SetUint(v)
-	case reflect.Uint8:
-		v, err := strconv.ParseUint(value, 10, 8)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint8 type", opt)
-		}
-		field.SetUint(v)
-	case reflect.Uint16:
-		v, err := strconv.ParseUint(value, 10, 16)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint16 type", opt)
-		}
-		field.SetUint(v)
-	case reflect.Uint32:
-		v, err := strconv.ParseUint(value, 10, 32)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint32 type", opt)
-		}
-		field.SetUint(v)
-	case reflect.Uint64:
-		v, err := strconv.ParseUint(value, 10, 64)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint64 type", opt)
-		}
-		field.SetUint(v)
-	case reflect.Float32:
-		v, err := strconv.ParseFloat(value, 32)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the float32 type", opt)
-		}
-		field.SetFloat(v)
-	case reflect.Float64:
-		v, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the float64 type", opt)
-		}
-		field.SetFloat(v)
-	case reflect.String:
-		field.SetString(value)
-	default:
-		return fmt.Errorf("The field type of '%s' isn't supported", field.Type().Name())
-	}
-	return nil
-}
-
 func (cmd *Command) Run() error {
 	// Routing
 	subCmdPos := cmd.route(os.Args[1:])
@@ -247,7 +184,7 @@ func (cmd *Command) Run() error {
 }
 
 func (cmd *Command) Report() {
-	if !cmd.Verbose {
+	if !cmd.verbose {
 		return
 	}
 }

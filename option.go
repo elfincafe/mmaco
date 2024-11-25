@@ -1,14 +1,20 @@
 package mmaco
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 )
 
-type ()
-
-func newOption(field reflect.StructField) *option {
+func newOption(value reflect.Value, field reflect.StructField) *option {
+	// func newOption(field reflect.Value) *option {
+	if _, ok := field.Tag.Lookup(tagName); !ok {
+		return nil
+	}
 	o := new(option)
+	o.value = value
 	o.field = field
 	o.short = ""
 	o.long = ""
@@ -17,6 +23,7 @@ func newOption(field reflect.StructField) *option {
 	o.defaultValue = ""
 	o.format = ""
 	o.handler = ""
+	o.specified = false
 	return o
 }
 
@@ -24,7 +31,7 @@ func (o *option) parseTag() {
 	tags := strings.Split(o.field.Tag.Get(tagName), ",")
 	key := ""
 	for _, v := range tags {
-		t := strings.TrimLeft(v, " \t\v\r\n\f")
+		t := strings.TrimLeft(v, trimSpace)
 		if strings.HasPrefix(strings.ToLower(t), "short=") {
 			short := strings.TrimSpace(t[6:])
 			o.short = short
@@ -136,4 +143,95 @@ func (o *option) Handler() string {
 
 func (o *option) Format() string {
 	return o.handler
+}
+
+func (o *option) Set(value string) error {
+	switch o.Kind() {
+	case Bool:
+		o.value.SetBool(true)
+	case Int:
+		v, err := strconv.ParseInt(value, 10, 0)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the int type", o.field.Name)
+		}
+		o.value.SetInt(v)
+	case Int8:
+		v, err := strconv.ParseInt(value, 10, 8)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the int8 type", o.field.Name)
+		}
+		o.value.SetInt(v)
+	case Int16:
+		v, err := strconv.ParseInt(value, 10, 16)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the int16 type", o.field.Name)
+		}
+		o.value.SetInt(v)
+	case Int32:
+		v, err := strconv.ParseInt(value, 10, 32)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the int32 type", o.field.Name)
+		}
+		o.value.SetInt(v)
+	case Int64:
+		v, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the int64 type", o.field.Name)
+		}
+		o.value.SetInt(v)
+	case Uint:
+		v, err := strconv.ParseUint(value, 10, 0)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the uint type", o.field.Name)
+		}
+		o.value.SetUint(v)
+	case Uint8:
+		v, err := strconv.ParseUint(value, 10, 8)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the uint8 type", o.field.Name)
+		}
+		o.value.SetUint(v)
+	case Uint16:
+		v, err := strconv.ParseUint(value, 10, 16)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the uint16 type", o.field.Name)
+		}
+		o.value.SetUint(v)
+	case Uint32:
+		v, err := strconv.ParseUint(value, 10, 32)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the uint32 type", o.field.Name)
+		}
+		o.value.SetUint(v)
+	case Uint64:
+		v, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the uint64 type", o.field.Name)
+		}
+		o.value.SetUint(v)
+	case Float32:
+		v, err := strconv.ParseFloat(value, 32)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the float32 type", o.field.Name)
+		}
+		o.value.SetFloat(v)
+	case Float64:
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("The value of option '%s' should be the float64 type", o.field.Name)
+		}
+		o.value.SetFloat(v)
+	case String:
+		o.value.SetString(value)
+	case Time:
+		t, err := time.Parse(o.format, value)
+		if err != nil {
+			return fmt.Errorf("Can't parse \"%s\" for the value of option '%s'", value, o.field.Name)
+		}
+		o.value.Set(reflect.ValueOf(t))
+	default:
+		return fmt.Errorf("The field type of '%s' isn't supported", o.field.Type.Name())
+	}
+	return nil
+
 }

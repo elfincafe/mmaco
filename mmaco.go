@@ -1,9 +1,15 @@
 package mmaco
 
-import "reflect"
+import (
+	"bytes"
+	"reflect"
+	"regexp"
+	"time"
+)
 
 const (
-	tagName = "mmaco"
+	tagName   = "mmaco"
+	trimSpace = " \t\v\r\n\f"
 
 	Unknown Kind = iota
 	String
@@ -26,13 +32,30 @@ const (
 type (
 	Kind int
 
+	Command struct {
+		Name    string
+		subCmds map[string]*subCommand
+		subCmd  string
+		scOrder []string
+		opts    []*option
+		start   time.Time
+		help    bool `mmaco:"short=h,long=help,default=false"`
+		verbose bool `mmaco:"short=v,long=verbose,default=false"`
+	}
+
 	SubCommandInterface interface {
 		Init() error
-		Validate([]string) error
-		Run([]string) error
+		Validate() error
+		Run() error
+	}
+
+	subCommand struct {
+		cmd  reflect.Value
+		opts []*option
 	}
 
 	option struct {
+		value        reflect.Value
 		field        reflect.StructField
 		short        string
 		long         string
@@ -41,5 +64,19 @@ type (
 		defaultValue string
 		format       string
 		handler      string
+		specified    bool
 	}
 )
+
+func toSnakeCase(s string) string {
+	name := []byte{}
+	for _, c := range []byte(s) {
+		if c > 64 && c < 91 {
+			name = append(name, byte(95), c+32)
+		} else {
+			name = append(name, c)
+		}
+	}
+	name = regexp.MustCompile(`_{2,}`).ReplaceAll(name, []byte{95})
+	return string(bytes.Trim(name, "_"))
+}
