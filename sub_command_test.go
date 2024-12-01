@@ -1,58 +1,57 @@
 package mmaco
 
 import (
-	"fmt"
+	"reflect"
 	"testing"
 )
 
-type st struct {
-	f0 string
-	f1 string `mmaco:"short=s,long=option,desc=description,"`
-	f2 string `mmaco:"short=s,long=option,desc=description,"`
-	// Init     func() error
-	// Validate func() error
-	// Run      func() error
-}
-
-func (sc st) Init() error {
-	return nil
-}
-func (sc st) Validate() error {
-	return nil
-}
-func (sc st) Run() error {
-	return nil
+func isSameSubCmd(aSt, bSt *subCommand) bool {
+	a := reflect.TypeOf(aSt)
+	b := reflect.TypeOf(bSt)
+	if a.PkgPath() == b.PkgPath() && a.Name() == b.Name() {
+		return true
+	} else {
+		return false
+	}
 }
 
 func TestNewSubCommand(t *testing.T) {
 	// Test Case
-	v := newSubCommand(st{})
-	// Test
-	result := fmt.Sprintf("%T", v)
-	expected := fmt.Sprintf("*%s.subCommand", tagName)
-	if result != expected {
-		t.Errorf("Expected: %v, Result: %v", expected, result)
+	cases := []struct {
+		cmd SubCommandInterface
+		st  *subCommand
+	}{
+		{cmd: subCmd0{}, st: new(subCommand)},
+		{cmd: subCmd1{}, st: new(subCommand)},
+		{cmd: subCmd2{}, st: new(subCommand)},
 	}
-	// fmt.Printf("%T", (*v).cmd)
-	// if fmt.Sprintf("%T", (*v).cmd) != "reflect.Type" {
-	// 	t.Errorf("Expected: reflect.Type, Result: %v", fmt.Sprintf("%T", (*v).cmd))
-	// }
+
+	// Test
+	for i, c := range cases {
+		s := newSubCommand(c.cmd)
+		if !isSameSubCmd(s, c.st) {
+			t.Errorf(`[%d] Expected: *subCommand, Result: %v`, i, s)
+		}
+	}
 }
 
 func TestSubCommandParse(t *testing.T) {
 	// Test Case
-	v := newSubCommand(st{})
-	expectedCount := 0
-	for i := 0; i < v.cmd.NumField(); i++ {
-		_, ok := v.cmd.Field(i).Tag.Lookup(tagName)
-		if ok {
-			expectedCount += 1
-		}
+	cases := []struct {
+		sc       SubCommandInterface
+		expected int
+	}{
+		{sc: subCmd0{}, expected: 9},
+		{sc: subCmd1{}, expected: 16},
+		{sc: subCmd2{}, expected: 0},
 	}
-	v.parse()
 	// Test
-	if len(v.opts) != expectedCount {
-		t.Errorf("Expected: %v, Result: %v", expectedCount, len(v.opts))
+	for i, c := range cases {
+		v := newSubCommand(c.sc)
+		v.parse()
+		if c.expected != len(v.opts) {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, len(v.opts))
+		}
 	}
 }
 
@@ -62,15 +61,15 @@ func TestSubCommandName(t *testing.T) {
 		sc       SubCommandInterface
 		expected string
 	}{
-		{sc: subCmdTest1{}, expected: "sub_cmd_test1"},
-		{sc: subCmdTest2{}, expected: "sub_cmd_test2"},
-		{sc: subCmdTest3{}, expected: "sub_cmd_test3"},
+		{sc: subCmd0{}, expected: "sub_cmd0"},
+		{sc: subCmd1{}, expected: "sub_cmd1"},
+		{sc: subCmd2{}, expected: "sub_cmd2"},
 	}
 	// Test
 	for i, c := range cases {
-		cmd := newSubCommand(c.sc)
-		if cmd.Name() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, cmd.Name())
+		s := newSubCommand(c.sc)
+		if s.Name() != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, s.Name())
 		}
 	}
 }

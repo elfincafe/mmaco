@@ -9,8 +9,10 @@ import (
 )
 
 func newOption(value reflect.Value, field reflect.StructField) *option {
-	// func newOption(field reflect.Value) *option {
 	if _, ok := field.Tag.Lookup(tagName); !ok {
+		return nil
+	}
+	if tag := field.Tag.Get(tagName); len(strings.Trim(tag, trimSpace)) == 0 {
 		return nil
 	}
 	o := new(option)
@@ -44,13 +46,13 @@ func (o *option) parseTag() {
 			o.desc = t[5:]
 			key = "desc"
 		} else if strings.HasPrefix(strings.ToLower(t), "default=") {
-			o.defaultValue = strings.TrimSpace(t[8:])
+			o.defaultValue = t[8:]
 			key = "default"
 		} else if strings.HasPrefix(strings.ToLower(t), "handler=") {
 			o.handler = strings.TrimSpace(t[8:])
 			key = "handler"
 		} else if strings.HasPrefix(strings.ToLower(t), "format=") {
-			o.format = strings.TrimSpace(t[7:])
+			o.format = t[7:]
 			key = "format"
 		} else if strings.ToLower(strings.TrimSpace(t)) == "required" {
 			o.required = true
@@ -62,6 +64,21 @@ func (o *option) parseTag() {
 			o.defaultValue += "," + v // concatinate variable "v" not "t"
 		}
 	}
+}
+
+func (o *option) isValid() error {
+	if len(o.short) != 0 && len(o.short) > 1 {
+		return fmt.Errorf(`"short" must be 1 character`)
+	} else if len(o.short) == 1 || !isAlphaNumeric([]byte(o.short)[0]) {
+		return fmt.Errorf(`"short" must be 0-9, a-z, A-Z`)
+	} else if len(o.long) == 1 {
+		return fmt.Errorf(`"long" must be at least 2 characters`)
+	} else if len(o.short) == 0 && len(o.long) == 0 {
+		return fmt.Errorf(`neither "short" nor "long" is specified`)
+	} else if len(o.format) > 0 && len(o.handler) > 0 {
+		return fmt.Errorf(`"format" and "handler" is exclusive`)
+	}
+	return nil
 }
 
 func (o *option) Name() string {
@@ -145,80 +162,80 @@ func (o *option) Format() string {
 	return o.handler
 }
 
-func (o *option) Set(value string) error {
+func (o *option) set(value string) error {
 	switch o.Kind() {
 	case Bool:
 		o.value.SetBool(true)
 	case Int:
 		v, err := strconv.ParseInt(value, 10, 0)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the int type`, o.field.Name)
 		}
 		o.value.SetInt(v)
 	case Int8:
 		v, err := strconv.ParseInt(value, 10, 8)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int8 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the int8 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
 	case Int16:
 		v, err := strconv.ParseInt(value, 10, 16)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int16 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the int16 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
 	case Int32:
 		v, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int32 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the int32 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
 	case Int64:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the int64 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the int64 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
 	case Uint:
 		v, err := strconv.ParseUint(value, 10, 0)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the uint type`, o.field.Name)
 		}
 		o.value.SetUint(v)
 	case Uint8:
 		v, err := strconv.ParseUint(value, 10, 8)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint8 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the uint8 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
 	case Uint16:
 		v, err := strconv.ParseUint(value, 10, 16)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint16 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the uint16 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
 	case Uint32:
 		v, err := strconv.ParseUint(value, 10, 32)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint32 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the uint32 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
 	case Uint64:
 		v, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the uint64 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the uint64 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
 	case Float32:
 		v, err := strconv.ParseFloat(value, 32)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the float32 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the float32 type`, o.field.Name)
 		}
 		o.value.SetFloat(v)
 	case Float64:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			return fmt.Errorf("The value of option '%s' should be the float64 type", o.field.Name)
+			return fmt.Errorf(`the value of option "%s" should be the float64 type`, o.field.Name)
 		}
 		o.value.SetFloat(v)
 	case String:
@@ -226,11 +243,11 @@ func (o *option) Set(value string) error {
 	case Time:
 		t, err := time.Parse(o.format, value)
 		if err != nil {
-			return fmt.Errorf("Can't parse \"%s\" for the value of option '%s'", value, o.field.Name)
+			return fmt.Errorf(`can't parse \"%s\" for the value of option "%s"`, value, o.field.Name)
 		}
 		o.value.Set(reflect.ValueOf(t))
 	default:
-		return fmt.Errorf("The field type of '%s' isn't supported", o.field.Type.Name())
+		return fmt.Errorf(`the field type of "%s" isn't supported`, o.field.Type.Name())
 	}
 	return nil
 

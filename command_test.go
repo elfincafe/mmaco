@@ -58,16 +58,16 @@ func TestCommandAdd(t *testing.T) {
 		name string
 	}{
 		{
-			sc:   subCmdTest1{},
-			name: "sub_cmd_test1",
+			sc:   subCmd0{},
+			name: "sub_cmd0",
 		},
 		{
-			sc:   subCmdTest2{},
-			name: "sub_cmd_test2",
+			sc:   subCmd1{},
+			name: "sub_cmd1",
 		},
 		{
-			sc:   subCmdTest3{},
-			name: "sub_cmd_test3",
+			sc:   subCmd2{},
+			name: "sub_cmd2",
 		},
 	}
 	// Test

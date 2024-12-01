@@ -45,8 +45,7 @@ type (
 
 	SubCommandInterface interface {
 		Init() error
-		Validate() error
-		Run() error
+		Run(...[]string) error
 	}
 
 	subCommand struct {
@@ -79,4 +78,16 @@ func toSnakeCase(s string) string {
 	}
 	name = regexp.MustCompile(`_{2,}`).ReplaceAll(name, []byte{95})
 	return string(bytes.Trim(name, "_"))
+}
+
+func isAlphaNumeric(b byte) bool {
+	if b >= 48 && b <= 57 { // 0 - 9
+		return true
+	} else if b >= 65 && b <= 90 { // A - Z
+		return true
+	} else if b >= 97 && b <= 122 { // a - z
+		return true
+	} else {
+		return false
+	}
 }

@@ -20,9 +20,9 @@ func New(name string) *Command {
 }
 
 func (cmd *Command) parse() {
-	ref := reflect.TypeOf(cmd).Elem()
-	for i := 0; i < ref.NumField(); i++ {
-		opt := newOption(ref.Field(i))
+	v := reflect.ValueOf(cmd)
+	for i := 0; i < v.Type().Elem().NumField(); i++ {
+		opt := newOption(v.Elem().Field(i), v.Type().Elem().Field(i))
 		if opt != nil {
 			cmd.opts = append(cmd.opts, opt)
 		}
@@ -32,7 +32,7 @@ func (cmd *Command) parse() {
 func (cmd *Command) Add(subCmd SubCommandInterface) {
 	sc := newSubCommand(subCmd)
 	sc.parse()
-	name := toSnakeCase(sc.Name())
+	name := sc.Name()
 	cmd.subCmds[name] = sc
 	exists := false
 	for _, v := range cmd.scOrder {
@@ -47,31 +47,44 @@ func (cmd *Command) Add(subCmd SubCommandInterface) {
 }
 
 func (cmd *Command) route(args []string) error {
-	var err error
-	idx := 0
+
+	idx := cmd.getSubCmdIndex(args)
+	if idx < 0 {
+		cmd.subCmd = "help"
+	} else {
+		cmd.subCmd = args[idx]
+	}
+
+	// parse root options
 	skip := false
-	for i, arg := range args {
+	for i, arg := range args[:idx] {
 		ok := false
 		if skip {
+			skip = false
 			continue
 		}
 		for _, opt := range cmd.opts {
 			if arg == opt.short {
 				if opt.Kind() == Bool {
-					// setArg(&opt.field, opt.Short(), "true")
+					opt.set("true")
 				} else if opt.Kind() != Unknown {
-					// setArg(&opt.field, opt.Short(), args[i+1])
+					if i+1 < idx {
+						opt.set(args[i+1])
+						skip = true
+					} else {
+						return fmt.Errorf(`option "%s" needs a value`, opt.Name())
+					}
 				} else {
-
+					return fmt.Errorf(`option "%s" needs a value`, opt.Name())
 				}
-				break
 			} else if arg == opt.long {
 				if opt.Kind() == Bool {
-					// err = setArg()
+					opt.set("true")
+				} else {
+					return fmt.Errorf(`option "%s" needs a value`, opt.Name())
 				}
-				break
 			} else if strings.HasPrefix(arg, opt.long+"=") {
-				length := len(opt.long + "=")
+				// length := len(opt.long + "=")
 				// err = setArg(opt.field, arg[length:])
 				break
 			}
@@ -159,6 +172,22 @@ func (cmd *Command) route(args []string) error {
 	return nil
 	// ERROR:
 	// 	return err
+}
+
+func (cmd *Command) getSubCmdIndex(args []string) int {
+	idx := -1
+	for i, arg := range args {
+		for _, scName := range cmd.scOrder {
+			if arg == scName {
+				idx = i
+				break
+			}
+		}
+		if idx > -1 {
+			break
+		}
+	}
+	return idx
 }
 
 func (cmd *Command) Run() error {
