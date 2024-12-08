@@ -46,7 +46,7 @@ func TestNewOption(t *testing.T) {
 			continue
 		}
 		if !isSameOption(o, c.st) {
-			t.Errorf(`[%d] Expected: *option, Result: "%v"`, i, o.short)
+			t.Errorf(`[%d] Expected: *option, Result: "%v"`, i, o.Short)
 			continue
 		}
 	}
@@ -90,26 +90,26 @@ func TestOptionParse(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if o.short != c.short {
-			t.Errorf(`[%d] Short Expected: "%v", Result: "%v"`, i, o.short, c.short)
+		if o.Short != c.short {
+			t.Errorf(`[%d] Short Expected: "%v", Result: "%v"`, i, o.Short, c.short)
 		}
-		if o.long != c.long {
-			t.Errorf(`[%d] Long Expected: "%v" Result: "%v"`, i, o.long, c.long)
+		if o.Long != c.long {
+			t.Errorf(`[%d] Long Expected: "%v" Result: "%v"`, i, o.Long, c.long)
 		}
-		if o.required != c.required {
-			t.Errorf(`[%d] Required Expected: "%v", Result: "%v"`, i, o.required, c.required)
+		if o.Required != c.required {
+			t.Errorf(`[%d] Required Expected: "%v", Result: "%v"`, i, o.Required, c.required)
 		}
-		if o.desc != c.desc {
-			t.Errorf(`[%d] Desc Expected: "%v", Result: "%v"`, i, o.desc, c.desc)
+		if o.Desc != c.desc {
+			t.Errorf(`[%d] Desc Expected: "%v", Result: "%v"`, i, o.Desc, c.desc)
 		}
-		if o.defaultValue != c.defaultValue {
-			t.Errorf(`[%d] Default Expected: "%v", Result: "%v"`, i, o.defaultValue, c.defaultValue)
+		if o.Default != c.defaultValue {
+			t.Errorf(`[%d] Default Expected: "%v", Result: "%v"`, i, o.Default, c.defaultValue)
 		}
-		if o.format != c.format {
-			t.Errorf(`[%d] Format Expected: "%v", Result: "%v"`, i, o.format, c.format)
+		if o.Format != c.format {
+			t.Errorf(`[%d] Format Expected: "%v", Result: "%v"`, i, o.Format, c.format)
 		}
-		if o.handler != c.handler {
-			t.Errorf(`[%d] Handler Expected: "%v", Result: "%v"`, i, o.handler, c.handler)
+		if o.Handler != c.handler {
+			t.Errorf(`[%d] Handler Expected: "%v", Result: "%v"`, i, o.Handler, c.handler)
 		}
 	}
 }
@@ -224,8 +224,8 @@ func TestOptionShort(t *testing.T) {
 			continue
 		}
 		o.parse()
-		if o.Short() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Short())
+		if o.Short != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Short)
 		}
 	}
 }
@@ -261,8 +261,8 @@ func TestOptionLong(t *testing.T) {
 			continue
 		}
 		o.parse()
-		if o.Long() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Long())
+		if o.Long != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Long)
 		}
 	}
 }
@@ -298,8 +298,8 @@ func TestOptionRequired(t *testing.T) {
 			continue
 		}
 		o.parse()
-		if o.Required() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Required())
+		if o.Required != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Required)
 		}
 	}
 }
@@ -335,8 +335,8 @@ func TestOptionDesc(t *testing.T) {
 			continue
 		}
 		o.parse()
-		if o.Desc() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Desc())
+		if o.Desc != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Desc)
 		}
 	}
 }
@@ -372,8 +372,8 @@ func TestOptionDefault(t *testing.T) {
 			continue
 		}
 		o.parse()
-		if o.Default() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Default())
+		if o.Default != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Default)
 		}
 	}
 }
@@ -409,8 +409,8 @@ func TestOptionHandler(t *testing.T) {
 			continue
 		}
 		o.parse()
-		if o.Handler() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Handler())
+		if o.Handler != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Handler)
 		}
 	}
 }

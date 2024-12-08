@@ -75,7 +75,7 @@ func (cmd *Command) route(args []string) error {
 			continue
 		}
 		for _, opt := range cmd.opts {
-			if arg == opt.short {
+			if arg == opt.Short {
 				if opt.Kind() == Bool {
 					opt.set("true")
 				} else if opt.Kind() != Unknown {
@@ -88,14 +88,14 @@ func (cmd *Command) route(args []string) error {
 				} else {
 					return fmt.Errorf(`option "%s" needs a value`, opt.Name())
 				}
-			} else if arg == opt.long {
+			} else if arg == opt.Long {
 				if opt.Kind() == Bool {
 					opt.set("true")
 				} else {
 					return fmt.Errorf(`option "%s" needs a value`, opt.Name())
 				}
-			} else if strings.HasPrefix(arg, opt.long+"=") {
-				length := len(opt.long + "=")
+			} else if strings.HasPrefix(arg, opt.Long+"=") {
+				length := len(opt.Long + "=")
 				opt.set(arg[length:])
 				break
 			}
@@ -228,11 +228,11 @@ func (cmd *Command) helpCommand() error {
 	// Option
 	max := 0
 	for _, o := range cmd.opts {
-		max = int(math.Max(float64(max), float64(len(o.Long()))))
+		max = int(math.Max(float64(max), float64(len(o.Long))))
 	}
 	format := fmt.Sprintf("    %%-2s, %%-%ds   %%s\n", max)
 	for _, o := range cmd.opts {
-		sb.WriteString(fmt.Sprintf(format, o.Short(), o.Long(), o.Desc()))
+		sb.WriteString(fmt.Sprintf(format, o.Short, o.Long, o.Desc))
 	}
 	// Sub Command
 	max += 4
@@ -267,7 +267,7 @@ func (cmd *Command) helpSubCommand() error {
 		}
 		format := fmt.Sprintf("    %%-2s, %%-%ds   %%s\n", max)
 		for _, o := range sc.opts {
-			sb.WriteString(fmt.Sprintf(format, o.Short(), o.Long(), o.Desc()))
+			sb.WriteString(fmt.Sprintf(format, o.Short, o.Long, o.Desc))
 		}
 	}
 

@@ -42,8 +42,8 @@ func TestCommandParse(t *testing.T) {
 			}
 		}
 		if opt != nil {
-			if opt.short != c.short || opt.long != c.long || opt.Kind() != c.kind {
-				t.Errorf("[%d] Short:%v(%v), Long:%v(%v), Kind:%v(%v), ", i, opt.short, c.short, opt.long, c.long, opt.Kind(), c.kind)
+			if opt.Short != c.short || opt.Long != c.long || opt.Kind() != c.kind {
+				t.Errorf("[%d] Short:%v(%v), Long:%v(%v), Kind:%v(%v), ", i, opt.Short, c.short, opt.Long, c.long, opt.Kind(), c.kind)
 			}
 		} else {
 			t.Errorf("[%d] Can't find the field '%s'", i, c.name)

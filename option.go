@@ -15,13 +15,13 @@ func newOption(value reflect.Value, field reflect.StructField) *option {
 	o := new(option)
 	o.value = value
 	o.field = field
-	o.short = ""
-	o.long = ""
-	o.required = false
-	o.desc = ""
-	o.defaultValue = ""
-	o.format = ""
-	o.handler = ""
+	o.Short = ""
+	o.Long = ""
+	o.Required = false
+	o.Desc = ""
+	o.Default = ""
+	o.Format = ""
+	o.Handler = ""
 	o.specified = false
 	return o
 }
@@ -33,43 +33,43 @@ func (o *option) parse() error {
 		t := strings.TrimLeft(v, trimSpace)
 		if strings.HasPrefix(strings.ToLower(t), "short=") {
 			short := strings.TrimSpace(t[6:])
-			o.short = short
+			o.Short = short
 			key = "short"
 		} else if strings.HasPrefix(strings.ToLower(t), "long=") {
 			long := strings.TrimSpace(t[5:])
-			o.long = long
+			o.Long = long
 			key = "long"
 		} else if strings.HasPrefix(strings.ToLower(t), "desc=") {
-			o.desc = t[5:]
+			o.Desc = t[5:]
 			key = "desc"
 		} else if strings.HasPrefix(strings.ToLower(t), "default=") {
-			o.defaultValue = t[8:]
+			o.Default = t[8:]
 			key = "default"
 		} else if strings.HasPrefix(strings.ToLower(t), "handler=") {
-			o.handler = strings.TrimSpace(t[8:])
+			o.Handler = strings.TrimSpace(t[8:])
 			key = "handler"
 		} else if strings.HasPrefix(strings.ToLower(t), "format=") {
-			o.format = t[7:]
+			o.Format = t[7:]
 			key = "format"
 		} else if strings.ToLower(strings.TrimSpace(t)) == "required" {
-			o.required = true
+			o.Required = true
 		} else if key == "desc" {
-			o.desc += "," + v // concatinate variable "v" not "t"
+			o.Desc += "," + v // concatinate variable "v" not "t"
 		} else if key == "format" {
-			o.format += "," + v // concatinate variable "v" not "t"
+			o.Format += "," + v // concatinate variable "v" not "t"
 		} else if key == "default" {
-			o.defaultValue += "," + v // concatinate variable "v" not "t"
+			o.Default += "," + v // concatinate variable "v" not "t"
 		}
 	}
-	if len(o.short) != 0 && len(o.short) > 1 {
+	if len(o.Short) != 0 && len(o.Short) > 1 {
 		return fmt.Errorf(`"short" must be 1 character`)
-	} else if len(o.short) == 1 && !isAlphaNumeric([]byte(o.short)[0]) {
+	} else if len(o.Short) == 1 && !isAlphaNumeric([]byte(o.Short)[0]) {
 		return fmt.Errorf(`"short" must be 0-9, a-z, A-Z`)
-	} else if len(o.long) == 1 {
+	} else if len(o.Long) == 1 {
 		return fmt.Errorf(`"long" must be at least 2 characters`)
-	} else if len(o.short) == 0 && len(o.long) == 0 {
+	} else if len(o.Short) == 0 && len(o.Long) == 0 {
 		return fmt.Errorf(`neither "short" nor "long" is specified`)
-	} else if len(o.format) > 0 && len(o.handler) > 0 {
+	} else if len(o.Format) > 0 && len(o.Handler) > 0 {
 		return fmt.Errorf(`"format" and "handler" is exclusive`)
 	}
 	return nil
@@ -120,41 +120,41 @@ func (o *option) Kind() Kind {
 	}
 }
 
-func (o *option) Short() string {
-	if o.short == "" {
-		return ""
-	} else {
-		return "-" + o.short
-	}
-}
+// func (o *option) Short() string {
+// 	if o.short == "" {
+// 		return ""
+// 	} else {
+// 		return "-" + o.short
+// 	}
+// }
 
-func (o *option) Long() string {
-	if o.long == "" {
-		return ""
-	} else {
-		return "--" + o.long
-	}
-}
+// func (o *option) Long() string {
+// 	if o.long == "" {
+// 		return ""
+// 	} else {
+// 		return "--" + o.long
+// 	}
+// }
 
-func (o *option) Required() bool {
-	return o.required
-}
+// func (o *option) Required() bool {
+// 	return o.required
+// }
 
-func (o *option) Desc() string {
-	return o.desc
-}
+// func (o *option) Desc() string {
+// 	return o.desc
+// }
 
-func (o *option) Default() string {
-	return o.defaultValue
-}
+// func (o *option) Default() string {
+// 	return o.defaultValue
+// }
 
-func (o *option) Handler() string {
-	return o.handler
-}
+// func (o *option) Handler() string {
+// 	return o.handler
+// }
 
-func (o *option) Format() string {
-	return o.handler
-}
+// func (o *option) Format() string {
+// 	return o.handler
+// }
 
 func (o *option) set(value string) error {
 	switch o.Kind() {
@@ -248,7 +248,7 @@ func (o *option) set(value string) error {
 		o.value.SetString(value)
 		o.specified = true
 	case Time:
-		t, err := time.Parse(o.format, value)
+		t, err := time.Parse(o.Format, value)
 		if err != nil {
 			return fmt.Errorf(`can't parse "%s" for the value of option "%s"`, value, o.field.Name)
 		}

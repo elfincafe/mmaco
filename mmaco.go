@@ -56,16 +56,16 @@ type (
 	}
 
 	option struct {
-		value        reflect.Value
-		field        reflect.StructField
-		short        string
-		long         string
-		required     bool
-		desc         string
-		defaultValue string
-		format       string
-		handler      string
-		specified    bool
+		value     reflect.Value
+		field     reflect.StructField
+		Short     string
+		Long      string
+		Required  bool
+		Desc      string
+		Default   string
+		Format    string
+		Handler   string
+		specified bool
 	}
 
 	Error struct {
