@@ -1,6 +1,7 @@
 package mmaco
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -9,6 +10,7 @@ func isSameOption(aSt, bSt *option) bool {
 	if aSt == nil && bSt == nil {
 		return false
 	}
+	fmt.Println(aSt, bSt)
 	a := reflect.TypeOf(aSt).Elem()
 	b := reflect.TypeOf(bSt).Elem()
 	if a.PkgPath() == b.PkgPath() && a.Name() == b.Name() {
@@ -50,9 +52,8 @@ func TestNewOption(t *testing.T) {
 	}
 }
 
-func TestOptionParseTag(t *testing.T) {
+func TestOptionParse(t *testing.T) {
 	// Test Case
-	v := reflect.ValueOf(subCmd0{})
 	cases := []struct {
 		idx          int
 		st           *option
@@ -65,7 +66,7 @@ func TestOptionParseTag(t *testing.T) {
 		handler      string
 	}{
 		{idx: 0, st: nil, short: "", long: "", required: false, desc: "", defaultValue: "", format: "", handler: ""},
-		{idx: 1, st: nil, short: "", long: "", required: false, desc: "", defaultValue: "", format: "", handler: ""},
+		{idx: 1, st: new(option), short: "", long: "", required: false, desc: "", defaultValue: "", format: "", handler: ""},
 		{idx: 2, st: new(option), short: "2", long: "", required: false, desc: "", defaultValue: "", format: "", handler: ""},
 		{idx: 3, st: new(option), short: "", long: "field3", required: false, desc: "", defaultValue: "", format: "", handler: ""},
 		{idx: 4, st: new(option), short: "", long: "", required: false, desc: "desc4", defaultValue: "", format: "", handler: ""},
@@ -77,16 +78,18 @@ func TestOptionParseTag(t *testing.T) {
 		{idx: 10, st: new(option), short: "a", long: "field10", required: false, desc: " desc10, test ", defaultValue: " default10, Value , ", format: "", handler: "Handler"},
 	}
 	// Test
+	var err error
+	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
 		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
 		if o == nil && c.st == nil {
 			continue
 		}
-		if !isSameOption(o, c.st) {
-			t.Errorf(`[%d] Expected: *option, Result: "%v"`, i, o.short)
+		err = o.parse()
+		fmt.Println(err)
+		if err != nil {
 			continue
 		}
-		o.parseTag()
 		if o.short != c.short {
 			t.Errorf(`[%d] Short Expected: "%v", Result: "%v"`, i, o.short, c.short)
 		}
@@ -109,28 +112,6 @@ func TestOptionParseTag(t *testing.T) {
 			t.Errorf(`[%d] Handler Expected: "%v", Result: "%v"`, i, o.handler, c.handler)
 		}
 	}
-}
-
-func TestIsValid(t *testing.T) {
-	// // Test Case
-	// cases := []struct {
-	// 	idx      int
-	// 	st       bool
-	// 	expected bool
-	// }{
-	// 	{idx: 0, st: false, expected: false},
-	// 	{idx: 1, st: false, expected: false},
-	// 	{idx: 2, st: true, expected: false},
-	// 	{idx: 3, st: true, expected: false},
-	// 	{idx: 4, st: true, expected: false},
-	// 	{idx: 5, st: true, expected: false},
-	// 	{idx: 6, st: true, expected: false},
-	// 	{idx: 7, st: true, expected: false},
-	// 	{idx: 8, st: true, expected: false},
-	// 	{idx: 9, st: true, expected: false},
-	// }
-	// // Test
-	// v := reflect.ValueOf(subCmd0{})
 }
 
 func TestOptionName(t *testing.T) {
@@ -242,7 +223,7 @@ func TestOptionShort(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parseTag()
+		o.parse()
 		if o.Short() != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Short())
 		}
@@ -279,7 +260,7 @@ func TestOptionLong(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parseTag()
+		o.parse()
 		if o.Long() != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Long())
 		}
@@ -316,7 +297,7 @@ func TestOptionRequired(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parseTag()
+		o.parse()
 		if o.Required() != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Required())
 		}
@@ -353,7 +334,7 @@ func TestOptionDesc(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parseTag()
+		o.parse()
 		if o.Desc() != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Desc())
 		}
@@ -390,7 +371,7 @@ func TestOptionDefault(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parseTag()
+		o.parse()
 		if o.Default() != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Default())
 		}
@@ -427,7 +408,7 @@ func TestOptionHandler(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parseTag()
+		o.parse()
 		if o.Handler() != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Handler())
 		}

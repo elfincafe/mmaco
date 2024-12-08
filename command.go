@@ -2,6 +2,7 @@ package mmaco
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 	"strings"
@@ -19,20 +20,30 @@ func New(name string) *Command {
 	return cmd
 }
 
-func (cmd *Command) parse() {
+func (cmd *Command) parse() error {
+	var err error
 	v := reflect.ValueOf(cmd)
 	for i := 0; i < v.Type().Elem().NumField(); i++ {
 		opt := newOption(v.Elem().Field(i), v.Type().Elem().Field(i))
-		if opt != nil {
-			cmd.opts = append(cmd.opts, opt)
+		if opt == nil {
+			continue
 		}
+		err = opt.parse()
+		if err != nil {
+			return err
+		}
+		cmd.opts = append(cmd.opts, opt)
 	}
+	return nil
 }
 
 func (cmd *Command) Add(subCmd SubCommandInterface) {
 	sc := newSubCommand(subCmd)
 	sc.parse()
-	name := sc.Name()
+	name := sc.Name
+	if name == helpCmdName {
+		return
+	}
 	cmd.subCmds[name] = sc
 	exists := false
 	for _, v := range cmd.scOrder {
@@ -48,17 +59,17 @@ func (cmd *Command) Add(subCmd SubCommandInterface) {
 
 func (cmd *Command) route(args []string) error {
 
-	idx := cmd.getSubCmdIndex(args)
-	if idx < 0 {
-		cmd.subCmd = "help"
+	subCmdIdx := cmd.getSubCmdIndex(args)
+	if subCmdIdx < 0 {
+		cmd.help = true
+		return nil
 	} else {
-		cmd.subCmd = args[idx]
+		cmd.subCmd = args[subCmdIdx]
 	}
 
 	// parse root options
 	skip := false
-	for i, arg := range args[:idx] {
-		ok := false
+	for i, arg := range args[:subCmdIdx] {
 		if skip {
 			skip = false
 			continue
@@ -68,7 +79,7 @@ func (cmd *Command) route(args []string) error {
 				if opt.Kind() == Bool {
 					opt.set("true")
 				} else if opt.Kind() != Unknown {
-					if i+1 < idx {
+					if i+1 < subCmdIdx {
 						opt.set(args[i+1])
 						skip = true
 					} else {
@@ -84,38 +95,17 @@ func (cmd *Command) route(args []string) error {
 					return fmt.Errorf(`option "%s" needs a value`, opt.Name())
 				}
 			} else if strings.HasPrefix(arg, opt.long+"=") {
-				// length := len(opt.long + "=")
-				// err = setArg(opt.field, arg[length:])
+				length := len(opt.long + "=")
+				opt.set(arg[length:])
 				break
 			}
 		}
-		if ok {
-			idx = i + 1
-		} else {
-			break
-		}
-	}
-	fmt.Println(args[:idx], idx, len(args[idx:]))
-	os.Exit(123)
 
-	// SubCommand
-	if len(args[idx:]) > 0 {
-		ok := false
-		for _, subcmd := range cmd.scOrder {
-			if args[idx] == subcmd {
-				cmd.subCmd = subcmd
-				ok = true
-				break
-			}
-			if ok {
-				break
-			}
-		}
-	} else {
-		return fmt.Errorf("SubCommand isn't passed")
 	}
-	idx += 1
-	fmt.Println(cmd.subCmd, args[idx:])
+
+	// parse sub command options
+	if len(args[subCmdIdx:]) > 0 {
+	}
 
 	// skip := false
 	// for i, arg := range args {
@@ -191,29 +181,96 @@ func (cmd *Command) getSubCmdIndex(args []string) int {
 }
 
 func (cmd *Command) Run() error {
+	in, out := []reflect.Value{}, []reflect.Value{}
+
 	// Routing
 	subCmdPos := cmd.route(os.Args[1:])
 	fmt.Println(subCmdPos, cmd.subCmd)
 
 	// Analizing
-	sc := reflect.ValueOf(cmd.subCmd)
+	sc := reflect.ValueOf(cmd.subCmds[cmd.subCmd])
 
 	// Intialize
 	init := sc.MethodByName("Init")
-	if init.IsValid() {
-		init.Call([]reflect.Value{})
+	if init.IsValid() && init.Type().NumIn() == 0 && init.Type().NumOut() == 0 {
+		out = init.Call(in)
 	}
 
-	// Parsing Arguments
+	// Validate
+	vali := sc.MethodByName("Validate")
+	if vali.IsValid() && init.Type().NumIn() == 0 && vali.Type().NumOut() == 1 {
+		out = vali.Call(in)
+	}
 
 	// Run
-	sc.MethodByName("Run").Call([]reflect.Value{})
+	out = sc.MethodByName("Run").Call(in)
+	cmd.report()
 
-	return nil
+	return out[0].Interface().(error)
 }
 
-func (cmd *Command) Report() {
+func (cmd *Command) report() {
 	if !cmd.verbose {
 		return
 	}
+}
+
+func (cmd *Command) helpCommand() error {
+	// Sub Command Help
+	if len(cmd.subCmd) > 0 {
+		return cmd.helpSubCommand()
+	}
+	// Command Help
+	sb := strings.Builder{}
+	sb.WriteString("Usage:\n")
+	sb.WriteString("    " + cmd.Name + " [options] <sub command> [sub command options] [arg] ...\n")
+	sb.WriteString("\nOptions:\n")
+	// Option
+	max := 0
+	for _, o := range cmd.opts {
+		max = int(math.Max(float64(max), float64(len(o.Long()))))
+	}
+	format := fmt.Sprintf("    %%-2s, %%-%ds   %%s\n", max)
+	for _, o := range cmd.opts {
+		sb.WriteString(fmt.Sprintf(format, o.Short(), o.Long(), o.Desc()))
+	}
+	// Sub Command
+	max += 4
+	sb.WriteString("\nSub Commands:\n")
+	for _, sc := range cmd.scOrder {
+		max = int(math.Max(float64(max), float64(len(sc))))
+	}
+	format = fmt.Sprintf("    %%-%ds   %%s\n", max)
+	for _, sc := range cmd.scOrder {
+		sb.WriteString(fmt.Sprintf(format, sc, cmd.subCmds[sc].Desc))
+	}
+	// Sub Command Options
+	sb.WriteString("\nSub Command Options:\n")
+	sb.WriteString("    execute the following command\n")
+	sb.WriteString(fmt.Sprintf("\n    %s -h <SubCommand>\n", cmd.Name))
+
+	println(sb.String())
+	return nil
+}
+
+func (cmd *Command) helpSubCommand() error {
+	sc := cmd.subCmds[cmd.subCmd]
+
+	sb := strings.Builder{}
+	sb.WriteString("Usage:\n")
+	sb.WriteString("    " + cmd.Name + " " + cmd.subCmd + " [options] [arg] ...\n")
+	if len(sc.opts) > 0 {
+		sb.WriteString("Options:\n")
+		max := 0
+		for _, o := range sc.opts {
+			max = int(math.Max(float64(max), float64(len(o.Name()))))
+		}
+		format := fmt.Sprintf("    %%-2s, %%-%ds   %%s\n", max)
+		for _, o := range sc.opts {
+			sb.WriteString(fmt.Sprintf(format, o.Short(), o.Long(), o.Desc()))
+		}
+	}
+
+	println(sb.String())
+	return nil
 }

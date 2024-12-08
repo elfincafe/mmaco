@@ -35,7 +35,7 @@ func TestCommandParse(t *testing.T) {
 	for i, c := range cases {
 		opt = nil
 		for _, o := range cmd.opts {
-			o.parseTag()
+			o.parse()
 			if o.Name() == c.name {
 				opt = o
 				break
@@ -73,8 +73,9 @@ func TestCommandAdd(t *testing.T) {
 	// Test
 	for i, c := range cases {
 		cmd := New("cmd")
+		cmd.parse()
 		cmd.Add(c.sc)
-		if cmd.subCmds[c.name].Name() != c.name {
+		if cmd.subCmds[c.name].Name != c.name {
 			t.Errorf("[%d] Expected: %v, Returned: %v", i, c.sc, cmd.subCmds[c.name])
 		}
 	}
@@ -82,20 +83,98 @@ func TestCommandAdd(t *testing.T) {
 
 func TestCommandRoute(t *testing.T) {
 	cases := []struct {
-		args []string
+		args    []string
+		help    bool
+		verbose bool
+		subcmd  string
 	}{
 		{
-			[]string{"-v", "--help", "download", "--date=202410"},
+			[]string{"-v", "-h"},
+			true,
+			true,
+			"",
+		},
+		{
+			[]string{"--help", "--verbose"},
+			true,
+			true,
+			"",
+		},
+		{
+			[]string{"-v", "create"},
+			false,
+			true,
+			"create",
 		},
 	}
-	cmd := New("test")
+	// Test
+	cmd := New(tagName)
+	cmd.parse()
+	fmt.Println(cmd.opts)
 	for _, c := range cases {
 		cmd.scOrder = append(cmd.scOrder, "create")
 		cmd.scOrder = append(cmd.scOrder, "download")
 		cmd.route(c.args)
+		fmt.Println(cmd.help, cmd.verbose, cmd.subCmd)
+	}
+}
+
+func TestCommandGetSubCmdIndex(t *testing.T) {
+	// Test Case
+	cases := []struct {
+		args     []string
+		expected int
+	}{
+		{
+			[]string{},
+			-1,
+		},
+		{
+			[]string{"-v"},
+			-1,
+		},
+		{
+			[]string{"-v", "create"},
+			1,
+		},
+		{
+			[]string{"-v", "-h", "create"},
+			2,
+		},
+		{
+			[]string{"-v", "-h", "help"},
+			-1,
+		},
+	}
+	// Test
+	cmd := New(tagName)
+	for i, c := range cases {
+		cmd.scOrder = append(cmd.scOrder, "create")
+		cmd.scOrder = append(cmd.scOrder, "download")
+		idx := cmd.getSubCmdIndex(c.args)
+		if c.expected != idx {
+			t.Errorf(`[%d] Expected: %v, Result: %v`, i, c.expected, idx)
+		}
 	}
 }
 
 func TestCommandRun(t *testing.T) {
 
+}
+
+func TestCommandHelpCommand(t *testing.T) {
+	cmd := New(tagName)
+	cmd.Add(subCmd0{Desc: "Sub Command 0 for Test"})
+	cmd.Add(subCmd1{})
+	cmd.Add(subCmd2{})
+	cmd.parse()
+	cmd.helpCommand()
+}
+
+func TestCommandHelpSubCommand(t *testing.T) {
+	cmd := New(tagName)
+	cmd.Add(subCmd0{Desc: "Sub Command 0 for Test"})
+	cmd.parse()
+	cmd.route([]string{"-h", "sub_cmd0"})
+	cmd.helpSubCommand()
 }

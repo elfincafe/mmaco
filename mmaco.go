@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	tagName   = "mmaco"
-	trimSpace = " \t\v\r\n\f"
+	tagName     = "mmaco"
+	helpCmdName = "help"
+	trimSpace   = " \t\v\r\n\f"
 
 	Unknown Kind = iota
 	String
@@ -39,16 +40,17 @@ type (
 		scOrder []string
 		opts    []*option
 		start   time.Time
-		help    bool `mmaco:"short=h,long=help,default=false"`
-		verbose bool `mmaco:"short=v,long=verbose,default=false"`
+		verbose bool `mmaco:"short=v,long=verbose,default=false,desc=report verbosely."`
+		help    bool `mmaco:"short=h,long=help,default=false,desc=this help."`
 	}
 
 	SubCommandInterface interface {
-		Init() error
 		Run(...[]string) error
 	}
 
 	subCommand struct {
+		Name string
+		Desc string
 		cmd  reflect.Value
 		opts []*option
 	}
@@ -64,6 +66,11 @@ type (
 		format       string
 		handler      string
 		specified    bool
+	}
+
+	Error struct {
+		Code int
+		Err  error
 	}
 )
 

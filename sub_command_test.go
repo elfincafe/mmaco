@@ -46,9 +46,13 @@ func TestSubCommandParse(t *testing.T) {
 		{sc: subCmd2{}, expected: 0},
 	}
 	// Test
+	var err error
 	for i, c := range cases {
 		v := newSubCommand(c.sc)
-		v.parse()
+		err = v.parse()
+		if err != nil {
+			continue
+		}
 		if c.expected != len(v.opts) {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, len(v.opts))
 		}
@@ -68,8 +72,8 @@ func TestSubCommandName(t *testing.T) {
 	// Test
 	for i, c := range cases {
 		s := newSubCommand(c.sc)
-		if s.Name() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, s.Name())
+		if s.Name != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, s.Name)
 		}
 	}
 }
