@@ -52,140 +52,92 @@ func (cmd *Command) Add(subCmd SubCommandInterface) {
 			break
 		}
 	}
-	if !exists {
+	if !exists && name != helpCmdName {
 		cmd.scOrder = append(cmd.scOrder, name)
 	}
 }
 
-func (cmd *Command) route(args []string) error {
-
-	subCmdIdx := cmd.getSubCmdIndex(args)
-	if subCmdIdx < 0 {
-		cmd.help = true
-		return nil
-	} else {
-		cmd.subCmd = args[subCmdIdx]
-	}
-
+func (cmd *Command) route(args []string) ([]string, error) {
+	subArgs := []string{}
 	// parse root options
+	lastIdx := len(args) - 1
+	subCmdIdx := lastIdx
 	skip := false
-	for i, arg := range args[:subCmdIdx] {
+	subCmdChain := "@" + strings.Join(cmd.scOrder, "@") + "@"
+	for i, arg := range args {
 		if skip {
 			skip = false
 			continue
 		}
+		// Sub Command
+		if strings.Contains(subCmdChain, "@"+arg+"@") {
+			cmd.subCmd = arg
+			subCmdIdx = i
+			break
+		}
+		// Root Options
 		for _, opt := range cmd.opts {
-			if arg == opt.Short {
-				if opt.Kind() == Bool {
-					opt.set("true")
-				} else if opt.Kind() != Unknown {
-					if i+1 < subCmdIdx {
-						opt.set(args[i+1])
-						skip = true
-					} else {
-						return fmt.Errorf(`option "%s" needs a value`, opt.Name())
-					}
+			if arg == "-"+opt.Short && opt.Kind() == Bool {
+				opt.set("true")
+				break
+			} else if arg == "-"+opt.Short && opt.Kind() != Unknown {
+				if lastIdx > i {
+					skip = true
+					break
 				} else {
-					return fmt.Errorf(`option "%s" needs a value`, opt.Name())
+					return subArgs, fmt.Errorf(`option "%s" needs a value`, opt.Name())
 				}
-			} else if arg == opt.Long {
-				if opt.Kind() == Bool {
-					opt.set("true")
-				} else {
-					return fmt.Errorf(`option "%s" needs a value`, opt.Name())
-				}
-			} else if strings.HasPrefix(arg, opt.Long+"=") {
-				length := len(opt.Long + "=")
+			} else if arg == "--"+opt.Long && opt.Kind() == Bool {
+				opt.set("true")
+				break
+			} else if strings.HasPrefix(arg, "--"+opt.Long+"=") {
+				length := len("--" + opt.Long + "=")
 				opt.set(arg[length:])
 				break
 			}
 		}
-
+		return subArgs, fmt.Errorf(`unkown options or sub command: %s`, arg)
 	}
-
-	// parse sub command options
-	if len(args[subCmdIdx:]) > 0 {
-	}
-
-	// skip := false
-	// for i, arg := range args {
-	// 	if skip {
-	// 		continue
-	// 	}
-	// 	for name, meta := range metas {
-	// 		field := c.Elem().FieldByName(name)
-	// 		kind := field.Kind()
-	// 		short := "-" + meta.short
-	// 		long := "--" + meta.long
-	// 		if arg == long {
-	// 			if !field.CanSet() {
-	// 				err = fmt.Errorf("can't set to the field '%s'", name)
-	// 				goto ERROR
-	// 			}
-	// 			if kind == reflect.Bool {
-	// 				cmd.setArg(&field, long, "true")
-	// 				break
-	// 			} else {
-	// 				err = fmt.Errorf("needs value for the '%s' (e.g. --%s=something)", name, meta.long)
-	// 			}
-	// 		} else if arg == short {
-	// 			if !field.CanSet() {
-	// 				err = fmt.Errorf("can't set to the field '%s'", name)
-	// 				goto ERROR
-	// 			}
-	// 			if kind == reflect.Bool {
-	// 				cmd.setArg(&field, short, "true")
-	// 				break
-	// 			}
-	// 			if len(args) >= i && !strings.HasPrefix(args[i+1], "-") {
-	// 				skip = true
-	// 				break
-	// 			}
-	// 		} else if strings.HasPrefix(arg, long) {
-	// 			if !field.CanSet() {
-	// 				err = fmt.Errorf("can't set to the field '%s'", name)
-	// 				goto ERROR
-	// 			}
-	// 			if !strings.HasPrefix(arg, long+"=") {
-	// 				err = fmt.Errorf("needs value for the field '%s'", name)
-	// 				goto ERROR
-	// 			}
-	// 			n := len("--" + meta.long + "=")
-	// 			cmd.setArg(&field, long, arg[n:])
-	// 			break
-	// 		}
-	// 	}
-	// 	idx = i - 1
-	// }
-
-	// fmt.Println(metas["help"], metas["verbose"])
-	return nil
-	// ERROR:
-	// 	return err
-}
-
-func (cmd *Command) getSubCmdIndex(args []string) int {
-	idx := -1
-	for i, arg := range args {
-		for _, scName := range cmd.scOrder {
-			if arg == scName {
-				idx = i
-				break
+	// Sub Command Options
+	if len(args)-1 > subCmdIdx {
+		for i, arg := range args[subCmdIdx+1:] {
+			subCmd := cmd.subCmds[cmd.subCmd]
+			for _, opt := range subCmd.opts {
+				if arg == "-"+opt.Short && opt.Kind() == Bool {
+					opt.set("true")
+					break
+				} else if arg == "-"+opt.Short && opt.Kind() != Unknown {
+					if lastIdx > i {
+						skip = true
+						break
+					} else {
+						return subArgs, fmt.Errorf(`option "%s" needs a value`, opt.Name())
+					}
+				} else if arg == "--"+opt.Long && opt.Kind() == Bool {
+					opt.set("true")
+					break
+				} else if strings.HasPrefix(arg, "--"+opt.Long+"=") {
+					length := len("--" + opt.Long + "=")
+					opt.set(arg[length:])
+					break
+				}
 			}
-		}
-		if idx > -1 {
-			break
+			subArgs = append(subArgs, arg)
 		}
 	}
-	return idx
+
+	return subArgs, nil
 }
 
 func (cmd *Command) Run() error {
 	in, out := []reflect.Value{}, []reflect.Value{}
 
 	// Routing
-	subCmdPos := cmd.route(os.Args[1:])
-	fmt.Println(subCmdPos, cmd.subCmd)
+	subArgs, err := cmd.route(os.Args[1:])
+	if err != nil {
+		return err
+	}
+	fmt.Println(subArgs, cmd.subCmd)
 
 	// Analizing
 	sc := reflect.ValueOf(cmd.subCmds[cmd.subCmd])

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestNew(t *testing.T) {
+func TestCommandNew(t *testing.T) {
 	// Test Case
 	cmd := New(tagName)
 	typ := reflect.TypeOf(cmd).Elem().Name()
@@ -116,45 +116,6 @@ func TestCommandRoute(t *testing.T) {
 		cmd.scOrder = append(cmd.scOrder, "download")
 		cmd.route(c.args)
 		fmt.Println(cmd.help, cmd.verbose, cmd.subCmd)
-	}
-}
-
-func TestCommandGetSubCmdIndex(t *testing.T) {
-	// Test Case
-	cases := []struct {
-		args     []string
-		expected int
-	}{
-		{
-			[]string{},
-			-1,
-		},
-		{
-			[]string{"-v"},
-			-1,
-		},
-		{
-			[]string{"-v", "create"},
-			1,
-		},
-		{
-			[]string{"-v", "-h", "create"},
-			2,
-		},
-		{
-			[]string{"-v", "-h", "help"},
-			-1,
-		},
-	}
-	// Test
-	cmd := New(tagName)
-	for i, c := range cases {
-		cmd.scOrder = append(cmd.scOrder, "create")
-		cmd.scOrder = append(cmd.scOrder, "download")
-		idx := cmd.getSubCmdIndex(c.args)
-		if c.expected != idx {
-			t.Errorf(`[%d] Expected: %v, Result: %v`, i, c.expected, idx)
-		}
 	}
 }
 
