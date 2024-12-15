@@ -41,23 +41,11 @@ type (
 	}
 )
 
-func (cmd subCmd0) Init() error {
-	return nil
-}
-
 func (cmd subCmd0) Run(...[]string) error {
 	return nil
 }
 
-func (cmd subCmd1) Init() error {
-	return nil
-}
-
 func (cmd subCmd1) Run(...[]string) error {
-	return nil
-}
-
-func (cmd subCmd2) Init() error {
 	return nil
 }
 

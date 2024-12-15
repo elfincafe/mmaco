@@ -120,42 +120,6 @@ func (o *option) Kind() Kind {
 	}
 }
 
-// func (o *option) Short() string {
-// 	if o.short == "" {
-// 		return ""
-// 	} else {
-// 		return "-" + o.short
-// 	}
-// }
-
-// func (o *option) Long() string {
-// 	if o.long == "" {
-// 		return ""
-// 	} else {
-// 		return "--" + o.long
-// 	}
-// }
-
-// func (o *option) Required() bool {
-// 	return o.required
-// }
-
-// func (o *option) Desc() string {
-// 	return o.desc
-// }
-
-// func (o *option) Default() string {
-// 	return o.defaultValue
-// }
-
-// func (o *option) Handler() string {
-// 	return o.handler
-// }
-
-// func (o *option) Format() string {
-// 	return o.handler
-// }
-
 func (o *option) set(value string) error {
 	switch o.Kind() {
 	case Bool:
@@ -258,5 +222,4 @@ func (o *option) set(value string) error {
 		return fmt.Errorf(`the field type of "%s" isn't supported`, o.field.Type.Name())
 	}
 	return nil
-
 }

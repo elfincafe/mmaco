@@ -142,16 +142,39 @@ func (cmd *Command) Run() error {
 	// Analizing
 	sc := reflect.ValueOf(cmd.subCmds[cmd.subCmd])
 
-	// Intialize
+	// Initialize
 	init := sc.MethodByName("Init")
 	if init.IsValid() && init.Type().NumIn() == 0 && init.Type().NumOut() == 0 {
-		out = init.Call(in)
+		init.Call([]reflect.Value{})
+	}
+
+	// Argument Handler
+	for _, opt := range cmd.opts {
+		if opt.Handler == "" {
+			continue
+		}
+		h := sc.MethodByName(opt.Handler)
+		if h.IsValid() && h.Type().NumIn() == 1 && h.Type().Kind() == reflect.String && init.Type().NumOut() == 1 {
+			out = h.Call(in)
+			if out[0].CanInterface() {
+				return out[0].Interface().(error)
+			} else {
+				return fmt.Errorf(`"%s" method should return error`, opt.Handler)
+			}
+		} else {
+			return fmt.Errorf(`"%s" method should return error`, opt.Handler)
+		}
 	}
 
 	// Validate
 	vali := sc.MethodByName("Validate")
-	if vali.IsValid() && init.Type().NumIn() == 0 && vali.Type().NumOut() == 1 {
+	if vali.IsValid() && vali.Type().NumIn() == 0 && vali.Type().NumOut() == 1 {
 		out = vali.Call(in)
+		if out[0].CanInterface() {
+			return out[0].Interface().(error)
+		} else {
+			return fmt.Errorf(`%s.Validate method should return error`)
+		}
 	}
 
 	// Run

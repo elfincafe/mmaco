@@ -58,6 +58,7 @@ type (
 	option struct {
 		value     reflect.Value
 		field     reflect.StructField
+		specified bool
 		Short     string
 		Long      string
 		Required  bool
@@ -65,7 +66,6 @@ type (
 		Default   string
 		Format    string
 		Handler   string
-		specified bool
 	}
 
 	Error struct {
