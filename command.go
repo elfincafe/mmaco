@@ -2,250 +2,158 @@ package mmaco
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"reflect"
 	"strings"
 	"time"
 )
 
-func New(name string) *Command {
+func New(name string, loc *time.Location) *Command {
 	cmd := new(Command)
+	cmd.loc = loc
 	cmd.start = time.Now()
 	cmd.Name = name
 	cmd.subCmds = map[string]*subCommand{}
-	cmd.subCmd = ""
 	cmd.scOrder = []string{}
 	cmd.opts = []*option{}
 	return cmd
 }
 
 func (cmd *Command) parse() error {
-	var err error
-	v := reflect.ValueOf(cmd)
-	for i := 0; i < v.Type().Elem().NumField(); i++ {
-		opt := newOption(v.Elem().Field(i), v.Type().Elem().Field(i))
+	v := reflect.ValueOf(cmd).Elem()
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		opt := newOption(v.Field(i), t.Field(i), cmd.loc)
 		if opt == nil {
 			continue
-		}
-		err = opt.parse()
-		if err != nil {
-			return err
 		}
 		cmd.opts = append(cmd.opts, opt)
 	}
 	return nil
 }
 
-func (cmd *Command) Add(subCmd SubCommandInterface) {
-	sc := newSubCommand(subCmd)
-	sc.parse()
-	name := sc.Name
-	if name == helpCmdName {
-		return
-	}
-	cmd.subCmds[name] = sc
-	exists := false
-	for _, v := range cmd.scOrder {
-		if name == v {
-			exists = true
-			break
-		}
-	}
-	if !exists && name != helpCmdName {
-		cmd.scOrder = append(cmd.scOrder, name)
-	}
+func (cmd *Command) Add(subCmd SubCommandInterface) error {
+	return cmd.addSubCmd(subCmd, false)
 }
 
-func (cmd *Command) route(args []string) ([]string, error) {
-	subArgs := []string{}
-	// parse root options
-	lastIdx := len(args) - 1
-	subCmdIdx := lastIdx
-	skip := false
-	subCmdChain := "@" + strings.Join(cmd.scOrder, "@") + "@"
-	for i, arg := range args {
-		if skip {
-			skip = false
-			continue
-		}
-		// Sub Command
-		if strings.Contains(subCmdChain, "@"+arg+"@") {
-			cmd.subCmd = arg
-			subCmdIdx = i
-			break
-		}
-		// Root Options
-		for _, opt := range cmd.opts {
-			if arg == "-"+opt.Short && opt.Kind() == Bool {
-				opt.set("true")
-				break
-			} else if arg == "-"+opt.Short && opt.Kind() != Unknown {
-				if lastIdx > i {
-					skip = true
-					break
-				} else {
-					return subArgs, fmt.Errorf(`option "%s" needs a value`, opt.Name())
-				}
-			} else if arg == "--"+opt.Long && opt.Kind() == Bool {
-				opt.set("true")
-				break
-			} else if strings.HasPrefix(arg, "--"+opt.Long+"=") {
-				length := len("--" + opt.Long + "=")
-				opt.set(arg[length:])
-				break
-			}
-		}
-		return subArgs, fmt.Errorf(`unkown options or sub command: %s`, arg)
+func (cmd *Command) addSubCmd(subCmd SubCommandInterface, force bool) error {
+	sc := newSubCommand(subCmd, cmd.loc)
+	if sc == nil {
+		return fmt.Errorf("an invalid command")
 	}
-	// Sub Command Options
-	if len(args)-1 > subCmdIdx {
-		for i, arg := range args[subCmdIdx+1:] {
-			subCmd := cmd.subCmds[cmd.subCmd]
-			for _, opt := range subCmd.opts {
-				if arg == "-"+opt.Short && opt.Kind() == Bool {
-					opt.set("true")
-					break
-				} else if arg == "-"+opt.Short && opt.Kind() != Unknown {
-					if lastIdx > i {
-						skip = true
-						break
-					} else {
-						return subArgs, fmt.Errorf(`option "%s" needs a value`, opt.Name())
-					}
-				} else if arg == "--"+opt.Long && opt.Kind() == Bool {
-					opt.set("true")
-					break
-				} else if strings.HasPrefix(arg, "--"+opt.Long+"=") {
-					length := len("--" + opt.Long + "=")
-					opt.set(arg[length:])
-					break
-				}
-			}
-			subArgs = append(subArgs, arg)
-		}
-	}
-
-	return subArgs, nil
-}
-
-func (cmd *Command) Run() error {
-	in, out := []reflect.Value{}, []reflect.Value{}
-
-	// Routing
-	subArgs, err := cmd.route(os.Args[1:])
+	err := sc.parse()
 	if err != nil {
 		return err
 	}
-	fmt.Println(subArgs, cmd.subCmd)
+	name := sc.Name
+	if name == helpCmdName && !force {
+		return fmt.Errorf(`reserved command: help`)
+	}
+	cmd.subCmds[name] = sc
+	cmd.scOrder = append(cmd.scOrder, name)
+	return nil
+}
 
-	// Analizing
-	sc := reflect.ValueOf(cmd.subCmds[cmd.subCmd])
+func (cmd *Command) route(args []string) (int, error) {
+	idxs := []int{}
+	for i, arg := range args {
+		for _, sc := range cmd.scOrder {
+			if arg == sc {
+				idxs = append(idxs, i)
+			}
+		}
+	}
+	for _, idx := range idxs {
+		if idx == 0 {
+			return idx, nil
+		}
+		preArg := args[idx-1]
+		for _, o := range cmd.opts {
+			if preArg == "--"+o.Long && o.Kind == Bool {
+				return idx, nil
+			} else if preArg == "-"+o.Short && o.Kind == Bool {
+				return idx, nil
+			} else if strings.HasPrefix(preArg, "--"+o.Long+"=") {
+				return idx, nil
+			}
+		}
+	}
+	if len(idxs) > 0 {
+		return idxs[0], nil
+	} else {
+		return -1, fmt.Errorf("sub command isn't passed")
+	}
+}
 
-	// Initialize
-	init := sc.MethodByName("Init")
-	if init.IsValid() && init.Type().NumIn() == 0 && init.Type().NumOut() == 0 {
-		init.Call([]reflect.Value{})
+func (cmd *Command) parseArgs(args []string) error {
+	for _, arg := range args {
+		switch arg {
+		case "-h", "--help":
+			cmd.help = true
+		case "-r", "--report":
+			cmd.report = true
+		default:
+			return fmt.Errorf(`unknown option: %s`, arg)
+		}
+	}
+	return nil
+}
+
+func (cmd *Command) Run() error {
+	var err error
+	in, out := []reflect.Value{}, []reflect.Value{}
+
+	// Add Help Command
+	err = cmd.addSubCmd(new(help), true)
+	if err != nil {
+		return err
 	}
 
-	// Argument Handler
-	for _, opt := range cmd.opts {
-		if opt.Handler == "" {
-			continue
-		}
-		h := sc.MethodByName(opt.Handler)
-		if h.IsValid() && h.Type().NumIn() == 1 && h.Type().Kind() == reflect.String && init.Type().NumOut() == 1 {
-			out = h.Call(in)
-			if out[0].CanInterface() {
-				return out[0].Interface().(error)
-			} else {
-				return fmt.Errorf(`"%s" method should return error`, opt.Handler)
-			}
-		} else {
-			return fmt.Errorf(`"%s" method should return error`, opt.Handler)
-		}
+	// Parse Options
+	err = cmd.parse()
+	if err != nil {
+		return err
+	}
+
+	// Routing
+	args := os.Args[1:]
+	subCmdIdx, err := cmd.route(args)
+	if err != nil {
+		return err
+	}
+	subCmd := args[subCmdIdx]
+	sc := cmd.subCmds[subCmd]
+
+	// Parse Argument for Root
+	err = cmd.parseArgs(args[:subCmdIdx])
+	if err != nil {
+		return err
+	}
+	// Parse Argument for Sub Command
+	params, err := sc.parseArgs(args[subCmdIdx+1:])
+	if err != nil {
+		return err
 	}
 
 	// Validate
-	vali := sc.MethodByName("Validate")
-	if vali.IsValid() && vali.Type().NumIn() == 0 && vali.Type().NumOut() == 1 {
-		out = vali.Call(in)
-		if out[0].CanInterface() {
+	if sc.hasValidate {
+		out = sc.cmd.MethodByName("Validate").Call(nil)
+		if !out[0].IsNil() {
 			return out[0].Interface().(error)
-		} else {
-			return fmt.Errorf(`%s.Validate method should return error`)
 		}
 	}
 
 	// Run
-	out = sc.MethodByName("Run").Call(in)
-	cmd.report()
+	cmd.startSubCmd = time.Now()
+	out = sc.cmd.MethodByName("Run").Call(append(in, reflect.ValueOf(params)))
+	cmd.endSubCmd = time.Now()
 
-	return out[0].Interface().(error)
-}
+	fmt.Println(time.Now().Sub(cmd.start))
+	fmt.Println(cmd.endSubCmd.Sub(cmd.startSubCmd))
 
-func (cmd *Command) report() {
-	if !cmd.verbose {
-		return
+	if out[0].IsNil() {
+		return nil
+	} else {
+		return out[0].Interface().(error)
 	}
-}
-
-func (cmd *Command) helpCommand() error {
-	// Sub Command Help
-	if len(cmd.subCmd) > 0 {
-		return cmd.helpSubCommand()
-	}
-	// Command Help
-	sb := strings.Builder{}
-	sb.WriteString("Usage:\n")
-	sb.WriteString("    " + cmd.Name + " [options] <sub command> [sub command options] [arg] ...\n")
-	sb.WriteString("\nOptions:\n")
-	// Option
-	max := 0
-	for _, o := range cmd.opts {
-		max = int(math.Max(float64(max), float64(len(o.Long))))
-	}
-	format := fmt.Sprintf("    %%-2s, %%-%ds   %%s\n", max)
-	for _, o := range cmd.opts {
-		sb.WriteString(fmt.Sprintf(format, o.Short, o.Long, o.Desc))
-	}
-	// Sub Command
-	max += 4
-	sb.WriteString("\nSub Commands:\n")
-	for _, sc := range cmd.scOrder {
-		max = int(math.Max(float64(max), float64(len(sc))))
-	}
-	format = fmt.Sprintf("    %%-%ds   %%s\n", max)
-	for _, sc := range cmd.scOrder {
-		sb.WriteString(fmt.Sprintf(format, sc, cmd.subCmds[sc].Desc))
-	}
-	// Sub Command Options
-	sb.WriteString("\nSub Command Options:\n")
-	sb.WriteString("    execute the following command\n")
-	sb.WriteString(fmt.Sprintf("\n    %s -h <SubCommand>\n", cmd.Name))
-
-	println(sb.String())
-	return nil
-}
-
-func (cmd *Command) helpSubCommand() error {
-	sc := cmd.subCmds[cmd.subCmd]
-
-	sb := strings.Builder{}
-	sb.WriteString("Usage:\n")
-	sb.WriteString("    " + cmd.Name + " " + cmd.subCmd + " [options] [arg] ...\n")
-	if len(sc.opts) > 0 {
-		sb.WriteString("Options:\n")
-		max := 0
-		for _, o := range sc.opts {
-			max = int(math.Max(float64(max), float64(len(o.Name()))))
-		}
-		format := fmt.Sprintf("    %%-2s, %%-%ds   %%s\n", max)
-		for _, o := range sc.opts {
-			sb.WriteString(fmt.Sprintf(format, o.Short, o.Long, o.Desc))
-		}
-	}
-
-	println(sb.String())
-	return nil
 }

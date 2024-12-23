@@ -8,26 +8,26 @@ import (
 	"time"
 )
 
-func newOption(value reflect.Value, field reflect.StructField) *option {
+func newOption(value reflect.Value, field reflect.StructField, loc *time.Location) *option {
 	if _, ok := field.Tag.Lookup(tagName); !ok {
 		return nil
 	}
+
 	o := new(option)
+	o.specified = false
 	o.value = value
 	o.field = field
+	o.loc = loc
+	o.Kind = getFieldKind(field)
+	o.Name = field.Name
 	o.Short = ""
 	o.Long = ""
 	o.Required = false
 	o.Desc = ""
-	o.Default = ""
 	o.Format = ""
 	o.Handler = ""
-	o.specified = false
-	return o
-}
 
-func (o *option) parse() error {
-	tags := strings.Split(o.field.Tag.Get(tagName), ",")
+	tags := strings.Split(field.Tag.Get(tagName), ",")
 	key := ""
 	for _, v := range tags {
 		t := strings.TrimLeft(v, trimSpace)
@@ -42,9 +42,6 @@ func (o *option) parse() error {
 		} else if strings.HasPrefix(strings.ToLower(t), "desc=") {
 			o.Desc = t[5:]
 			key = "desc"
-		} else if strings.HasPrefix(strings.ToLower(t), "default=") {
-			o.Default = t[8:]
-			key = "default"
 		} else if strings.HasPrefix(strings.ToLower(t), "handler=") {
 			o.Handler = strings.TrimSpace(t[8:])
 			key = "handler"
@@ -57,71 +54,61 @@ func (o *option) parse() error {
 			o.Desc += "," + v // concatinate variable "v" not "t"
 		} else if key == "format" {
 			o.Format += "," + v // concatinate variable "v" not "t"
-		} else if key == "default" {
-			o.Default += "," + v // concatinate variable "v" not "t"
 		}
 	}
-	if len(o.Short) != 0 && len(o.Short) > 1 {
+
+	return o
+}
+
+func (o *option) validate(sc *subCommand) error {
+	if o.Short != "" && len(o.Short) > 1 {
 		return fmt.Errorf(`"short" must be 1 character`)
 	} else if len(o.Short) == 1 && !isAlphaNumeric([]byte(o.Short)[0]) {
 		return fmt.Errorf(`"short" must be 0-9, a-z, A-Z`)
 	} else if len(o.Long) == 1 {
 		return fmt.Errorf(`"long" must be at least 2 characters`)
-	} else if len(o.Short) == 0 && len(o.Long) == 0 {
+	} else if o.Short == "" && o.Long == "" {
 		return fmt.Errorf(`neither "short" nor "long" is specified`)
-	} else if len(o.Format) > 0 && len(o.Handler) > 0 {
-		return fmt.Errorf(`"format" and "handler" is exclusive`)
+	} else if o.Format != "" && o.Handler != "" {
+		return fmt.Errorf(`"format" and "handler" are exclusive`)
+	} else if o.Handler != "" {
+		method := sc.cmd.MethodByName(o.Handler)
+		if !method.IsValid() {
+			return fmt.Errorf(`"%s" doesn't have the method "%s"`, sc.Name, o.Handler)
+		} else if method.Type().NumIn() != 1 || method.Type().In(0).Kind() != reflect.String {
+			return fmt.Errorf(`"%s" must have only one argument, which is a string type`)
+		} else if method.Type().NumOut() != 1 || method.Type().Out(0).Kind() != reflect.Interface {
+			return fmt.Errorf(`"%s" must have only one return value, which is a string type`)
+		}
 	}
 	return nil
 }
 
-func (o *option) Name() string {
-	return o.field.Name
+func (o *option) isShort(arg string) bool {
+	if o.Short != "" && arg == "-"+o.Short {
+		return true
+	} else {
+		return false
+	}
+}
+func (o *option) isLong(arg string) bool {
+	if o.Long != "" && arg == "--"+o.Long {
+		return true
+	} else {
+		return false
+	}
 }
 
-func (o *option) Kind() Kind {
-	switch o.field.Type.Kind() {
-	case reflect.Bool:
-		return Bool
-	case reflect.Int:
-		return Int
-	case reflect.Int8:
-		return Int8
-	case reflect.Int16:
-		return Int16
-	case reflect.Int32:
-		return Int32
-	case reflect.Int64:
-		return Int64
-	case reflect.Uint:
-		return Uint
-	case reflect.Uint8:
-		return Uint8
-	case reflect.Uint16:
-		return Uint16
-	case reflect.Uint32:
-		return Uint32
-	case reflect.Uint64:
-		return Uint64
-	case reflect.Float32:
-		return Float32
-	case reflect.Float64:
-		return Float64
-	case reflect.String:
-		return String
-	case reflect.Struct:
-		if o.field.Type.PkgPath() == "time" && o.field.Type.Name() == "Time" {
-			return Time
-		} else {
-			return Unknown
-		}
-	default:
-		return Unknown
+func (o *option) has(arg string) bool {
+	if o.Long != "" && strings.HasPrefix(arg, "--"+o.Long+"=") {
+		return true
+	} else {
+		return false
 	}
 }
 
 func (o *option) set(value string) error {
-	switch o.Kind() {
+	switch o.Kind {
 	case Bool:
 		o.value.SetBool(true)
 	case Int:
@@ -212,10 +199,12 @@ func (o *option) set(value string) error {
 		o.value.SetString(value)
 		o.specified = true
 	case Time:
-		t, err := time.Parse(o.Format, value)
+		fmt.Println("Location: ", o.loc)
+		t, err := time.ParseInLocation(o.Format, value, o.loc)
 		if err != nil {
 			return fmt.Errorf(`can't parse "%s" for the value of option "%s"`, value, o.field.Name)
 		}
+		// fmt.Println(o.value.CanSet(), o.value.Type())
 		o.value.Set(reflect.ValueOf(t))
 		o.specified = true
 	default:
