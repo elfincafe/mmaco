@@ -199,12 +199,16 @@ func (o *option) set(value string) error {
 		o.value.SetString(value)
 		o.specified = true
 	case Time:
-		fmt.Println("Location: ", o.loc)
-		t, err := time.ParseInLocation(o.Format, value, o.loc)
+		var err error
+		var t time.Time
+		if o.loc != nil {
+			t, err = time.ParseInLocation(o.Format, value, o.loc)
+		} else {
+			t, err = time.Parse(o.Format, value)
+		}
 		if err != nil {
 			return fmt.Errorf(`can't parse "%s" for the value of option "%s"`, value, o.field.Name)
 		}
-		// fmt.Println(o.value.CanSet(), o.value.Type())
 		o.value.Set(reflect.ValueOf(t))
 		o.specified = true
 	default:

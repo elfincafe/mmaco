@@ -8,15 +8,19 @@ import (
 	"time"
 )
 
-func New(name string, loc *time.Location) *Command {
+func New(name string) *Command {
 	cmd := new(Command)
-	cmd.loc = loc
+	cmd.loc = nil
 	cmd.start = time.Now()
 	cmd.Name = name
 	cmd.subCmds = map[string]*subCommand{}
 	cmd.scOrder = []string{}
 	cmd.opts = []*option{}
 	return cmd
+}
+
+func (cmd *Command) SetLocation(loc *time.Location) {
+	cmd.loc = loc
 }
 
 func (cmd *Command) parse() error {

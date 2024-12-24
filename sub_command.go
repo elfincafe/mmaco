@@ -57,9 +57,11 @@ func (sc *subCommand) parseArgs(args []string) ([]string, error) {
 	params := []string{}
 	maxIdx := len(args) - 1
 	skip := false
-	argTypes := []ArgType{}
+	setFlg := false
 	for i, arg := range args {
+		setFlg = false
 		if skip {
+			skip = false
 			continue
 		}
 		for _, o := range sc.opts {
@@ -67,9 +69,11 @@ func (sc *subCommand) parseArgs(args []string) ([]string, error) {
 			if (o.isShort(arg) || o.isLong(arg)) && o.Kind == Bool {
 				if o.Handler == "" {
 					err = o.set("true")
+					setFlg = true
 				} else {
 					in = []reflect.Value{reflect.ValueOf("true")}
 					out = sc.cmd.MethodByName(o.Handler).Call(in)
+					setFlg = true
 					if !out[0].IsNil() {
 						err = out[0].Interface().(error)
 					}
@@ -91,10 +95,12 @@ func (sc *subCommand) parseArgs(args []string) ([]string, error) {
 				}
 				if o.Handler == "" {
 					err = o.set(argVal)
+					setFlg = true
 					skip = true
 				} else {
 					in = []reflect.Value{reflect.ValueOf(argVal)}
 					out = sc.cmd.MethodByName(o.Handler).Call(in)
+					setFlg = true
 					skip = true
 					if !out[0].IsNil() {
 						err = out[0].Interface().(error)
@@ -108,9 +114,11 @@ func (sc *subCommand) parseArgs(args []string) ([]string, error) {
 				argVal := arg[length:]
 				if o.Handler == "" {
 					err = o.set(argVal)
+					setFlg = true
 				} else {
 					in = []reflect.Value{reflect.ValueOf(argVal)}
 					out = sc.cmd.MethodByName(o.Handler).Call(in)
+					setFlg = true
 					if !out[0].IsNil() {
 						err = out[0].Interface().(error)
 					}
@@ -120,9 +128,10 @@ func (sc *subCommand) parseArgs(args []string) ([]string, error) {
 				}
 			}
 		}
-		if len(argTypes) < i+1 {
-			argTypes = append(argTypes, Value)
+		if !setFlg {
+			params = append(params, arg)
 		}
 	}
+
 	return params, nil
 }
