@@ -76,9 +76,9 @@ func (o *option) validate(sc *subCommand) error {
 		if !method.IsValid() {
 			return fmt.Errorf(`"%s" doesn't have the method "%s"`, sc.Name, o.Handler)
 		} else if method.Type().NumIn() != 1 || method.Type().In(0).Kind() != reflect.String {
-			return fmt.Errorf(`"%s" must have only one argument, which is a string type`)
+			return fmt.Errorf(`"%s" must have only one argument, which is a string type`, o.Name)
 		} else if method.Type().NumOut() != 1 || method.Type().Out(0).Kind() != reflect.Interface {
-			return fmt.Errorf(`"%s" must have only one return value, which is a string type`)
+			return fmt.Errorf(`"%s" must have only one return value, which is a string type`, o.Name)
 		}
 	}
 	return nil

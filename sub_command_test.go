@@ -3,6 +3,7 @@ package mmaco
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func isSameSubCmd(aSt, bSt *subCommand) bool {
@@ -27,8 +28,9 @@ func TestNewSubCommand(t *testing.T) {
 	}
 
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	for i, c := range cases {
-		s := newSubCommand(c.cmd)
+		s := newSubCommand(c.cmd, loc)
 		if !isSameSubCmd(s, c.st) {
 			t.Errorf(`[%d] Expected: *subCommand, Result: %v`, i, s)
 		}
@@ -47,8 +49,9 @@ func TestSubCommandParse(t *testing.T) {
 	}
 	// Test
 	var err error
+	loc := time.FixedZone("JST", 9*60*60)
 	for i, c := range cases {
-		v := newSubCommand(c.sc)
+		v := newSubCommand(c.sc, loc)
 		err = v.parse()
 		if err != nil {
 			continue
@@ -70,8 +73,9 @@ func TestSubCommandName(t *testing.T) {
 		{sc: subCmd2{}, expected: "sub_cmd2"},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	for i, c := range cases {
-		s := newSubCommand(c.sc)
+		s := newSubCommand(c.sc, loc)
 		if s.Name != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, s.Name)
 		}

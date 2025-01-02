@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func isSameOption(aSt, bSt *option) bool {
@@ -39,9 +40,10 @@ func TestNewOption(t *testing.T) {
 		{idx: 10, st: new(option)},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
+		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
@@ -78,18 +80,18 @@ func TestOptionParse(t *testing.T) {
 		{idx: 10, st: new(option), short: "a", long: "field10", required: false, desc: " desc10, test ", defaultValue: " default10, Value , ", format: "", handler: "Handler"},
 	}
 	// Test
-	var err error
+	// var err error
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
+		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
-		err = o.parse()
-		fmt.Println(err)
-		if err != nil {
-			continue
-		}
+		// err = o.validate()
+		// if err != nil {
+		// 	continue
+		// }
 		if o.Short != c.short {
 			t.Errorf(`[%d] Short Expected: "%v", Result: "%v"`, i, o.Short, c.short)
 		}
@@ -134,9 +136,10 @@ func TestOptionName(t *testing.T) {
 		{idx: 10, st: new(option), expected: "field10"},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
-		o := newOption(v.Field(i), v.Type().Field(i))
+		o := newOption(v.Field(i), v.Type().Field(i), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
@@ -144,8 +147,8 @@ func TestOptionName(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		if o.Name() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Name())
+		if o.Name != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Name)
 		}
 	}
 }
@@ -177,9 +180,10 @@ func TestOptionKind(t *testing.T) {
 		{idx: 15, st: new(option), expected: Unknown},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd1{})
 	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
+		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
@@ -187,8 +191,8 @@ func TestOptionKind(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		if o.Kind() != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Kind())
+		if o.Kind != c.expected {
+			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Kind)
 		}
 	}
 }
@@ -213,9 +217,10 @@ func TestOptionShort(t *testing.T) {
 		{idx: 10, st: new(option), expected: "-a"},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
+		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
@@ -223,7 +228,7 @@ func TestOptionShort(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parse()
+		// o.parse()
 		if o.Short != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Short)
 		}
@@ -250,9 +255,10 @@ func TestOptionLong(t *testing.T) {
 		{idx: 10, st: new(option), expected: "--field10"},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
+		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
@@ -260,7 +266,7 @@ func TestOptionLong(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parse()
+		// o.parse()
 		if o.Long != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Long)
 		}
@@ -287,9 +293,10 @@ func TestOptionRequired(t *testing.T) {
 		{idx: 10, st: new(option), expected: false},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
+		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
@@ -297,7 +304,7 @@ func TestOptionRequired(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parse()
+		// o.parse()
 		if o.Required != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Required)
 		}
@@ -324,9 +331,10 @@ func TestOptionDesc(t *testing.T) {
 		{idx: 10, st: new(option), expected: " desc10, test "},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
+		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
@@ -334,7 +342,7 @@ func TestOptionDesc(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parse()
+		// o.parse()
 		if o.Desc != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Desc)
 		}
@@ -361,9 +369,10 @@ func TestOptionDefault(t *testing.T) {
 		{idx: 10, st: new(option), expected: " default10, Value , "},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
+		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
@@ -371,7 +380,7 @@ func TestOptionDefault(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parse()
+		// o.parse()
 		if o.Default != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Default)
 		}
@@ -398,9 +407,10 @@ func TestOptionHandler(t *testing.T) {
 		{idx: 10, st: new(option), expected: "Handler"},
 	}
 	// Test
+	loc := time.FixedZone("JST", 9*60*60)
 	v := reflect.ValueOf(subCmd0{})
 	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx))
+		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
 		if o == nil && c.st == nil {
 			continue
 		}
@@ -408,7 +418,7 @@ func TestOptionHandler(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		o.parse()
+		// o.parse()
 		if o.Handler != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Handler)
 		}

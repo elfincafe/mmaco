@@ -41,15 +41,21 @@ type (
 	}
 )
 
-func (cmd subCmd0) Run(...[]string) error {
+func (cmd subCmd0) Init()           {}
+func (cmd subCmd0) Validate() error { return nil }
+func (cmd subCmd0) Run(args []string) error {
 	return nil
 }
 
-func (cmd subCmd1) Run(...[]string) error {
+func (cmd subCmd1) Init()           {}
+func (cmd subCmd1) Validate() error { return nil }
+func (cmd subCmd1) Run(args []string) error {
 	return nil
 }
 
-func (cmd subCmd2) Run(...[]string) error {
+func (cmd subCmd2) Init()           {}
+func (cmd subCmd2) Validate() error { return nil }
+func (cmd subCmd2) Run(args []string) error {
 	return nil
 }
 

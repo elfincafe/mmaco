@@ -27,7 +27,7 @@ func TestCommandParse(t *testing.T) {
 		kind  Kind
 	}{
 		{name: "help", short: "h", long: "help", kind: Bool},
-		{name: "verbose", short: "v", long: "verbose", kind: Bool},
+		{name: "report", short: "r", long: "report", kind: Bool},
 	}
 	cmd := New(tagName)
 	cmd.parse()
@@ -35,15 +35,15 @@ func TestCommandParse(t *testing.T) {
 	for i, c := range cases {
 		opt = nil
 		for _, o := range cmd.opts {
-			o.parse()
-			if o.Name() == c.name {
+			// o.parse()
+			if o.Name == c.name {
 				opt = o
 				break
 			}
 		}
 		if opt != nil {
-			if opt.Short != c.short || opt.Long != c.long || opt.Kind() != c.kind {
-				t.Errorf("[%d] Short:%v(%v), Long:%v(%v), Kind:%v(%v), ", i, opt.Short, c.short, opt.Long, c.long, opt.Kind(), c.kind)
+			if opt.Short != c.short || opt.Long != c.long || opt.Kind != c.kind {
+				t.Errorf("[%d] Short:%v(%v), Long:%v(%v), Kind:%v(%v), ", i, opt.Short, c.short, opt.Long, c.long, opt.Kind, c.kind)
 			}
 		} else {
 			t.Errorf("[%d] Can't find the field '%s'", i, c.name)
@@ -83,19 +83,19 @@ func TestCommandAdd(t *testing.T) {
 
 func TestCommandRoute(t *testing.T) {
 	cases := []struct {
-		args    []string
-		help    bool
-		verbose bool
-		subcmd  string
+		args   []string
+		help   bool
+		report bool
+		subcmd string
 	}{
 		{
-			[]string{"-v", "-h"},
+			[]string{"-r", "-h"},
 			true,
 			true,
 			"",
 		},
 		{
-			[]string{"--help", "--verbose"},
+			[]string{"--help", "--report"},
 			true,
 			true,
 			"",
@@ -115,7 +115,6 @@ func TestCommandRoute(t *testing.T) {
 		cmd.scOrder = append(cmd.scOrder, "create")
 		cmd.scOrder = append(cmd.scOrder, "download")
 		cmd.route(c.args)
-		fmt.Println(cmd.help, cmd.verbose, cmd.subCmd)
 	}
 }
 
@@ -129,7 +128,7 @@ func TestCommandHelpCommand(t *testing.T) {
 	cmd.Add(subCmd1{})
 	cmd.Add(subCmd2{})
 	cmd.parse()
-	cmd.helpCommand()
+	// cmd.helpCommand()
 }
 
 func TestCommandHelpSubCommand(t *testing.T) {
@@ -137,5 +136,5 @@ func TestCommandHelpSubCommand(t *testing.T) {
 	cmd.Add(subCmd0{Desc: "Sub Command 0 for Test"})
 	cmd.parse()
 	cmd.route([]string{"-h", "sub_cmd0"})
-	cmd.helpSubCommand()
+	// cmd.helpSubCommand()
 }

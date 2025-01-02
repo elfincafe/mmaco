@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func newSubCommand(s any, loc *time.Location) *subCommand {
+func newSubCommand(s SubCommandInterface, loc *time.Location) *subCommand {
 	t := reflect.TypeOf(s)
 	if !isSubCommand(t) {
 		return nil
