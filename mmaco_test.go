@@ -13,11 +13,10 @@ type (
 		field3  string `mmaco:"long=field3"`
 		field4  string `mmaco:"desc=desc4"`
 		field5  string `mmaco:"required"`
-		field6  string `mmaco:"default=default value"`
 		field7  string `mmaco:"format=2006/01/02 15:04:05"`
 		field8  string `mmaco:"handler=Handler"`
-		field9  string `mmaco:"short=9,long=field9,desc= desc9, test , default= default9, Value , ,required,format=Mon, 02 Jan 2006 15:04:05 MST,handler=Handler"`
-		field10 string `mmaco:"short=a,long=field10,desc= desc10, test , default= default10, Value , ,handler=Handler"`
+		field9  string `mmaco:"short=9,long=field9,desc= desc9, test ,required,format=Mon, 02 Jan 2006 15:04:05 MST,handler=Handler"`
+		field10 string `mmaco:"short=a,long=field10,desc= desc10, test ,handler=Handler"`
 	}
 	subCmd1 struct {
 		string_0  string    `mmaco:"short=s,long=string,desc=string desc"`

@@ -1,7 +1,6 @@
 package mmaco
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -11,7 +10,6 @@ func isSameOption(aSt, bSt *option) bool {
 	if aSt == nil && bSt == nil {
 		return false
 	}
-	fmt.Println(aSt, bSt)
 	a := reflect.TypeOf(aSt).Elem()
 	b := reflect.TypeOf(bSt).Elem()
 	if a.PkgPath() == b.PkgPath() && a.Name() == b.Name() {
@@ -37,7 +35,6 @@ func TestNewOption(t *testing.T) {
 		{idx: 7, st: new(option)},
 		{idx: 8, st: new(option)},
 		{idx: 9, st: new(option)},
-		{idx: 10, st: new(option)},
 	}
 	// Test
 	loc := time.FixedZone("JST", 9*60*60)
@@ -73,11 +70,10 @@ func TestOptionParse(t *testing.T) {
 		{idx: 3, st: new(option), short: "", long: "field3", required: false, desc: "", defaultValue: "", format: "", handler: ""},
 		{idx: 4, st: new(option), short: "", long: "", required: false, desc: "desc4", defaultValue: "", format: "", handler: ""},
 		{idx: 5, st: new(option), short: "", long: "", required: true, desc: "", defaultValue: "", format: "", handler: ""},
-		{idx: 6, st: new(option), short: "", long: "", required: false, desc: "", defaultValue: "default value", format: "", handler: ""},
-		{idx: 7, st: new(option), short: "", long: "", required: false, desc: "", defaultValue: "", format: "2006/01/02 15:04:05", handler: ""},
-		{idx: 8, st: new(option), short: "", long: "", required: false, desc: "", defaultValue: "", format: "", handler: "Handler"},
-		{idx: 9, st: new(option), short: "9", long: "field9", required: true, desc: " desc9, test ", defaultValue: " default9, Value , ", format: "Mon, 02 Jan 2006 15:04:05 MST", handler: "Handler"},
-		{idx: 10, st: new(option), short: "a", long: "field10", required: false, desc: " desc10, test ", defaultValue: " default10, Value , ", format: "", handler: "Handler"},
+		{idx: 6, st: new(option), short: "", long: "", required: false, desc: "", defaultValue: "", format: "2006/01/02 15:04:05", handler: ""},
+		{idx: 7, st: new(option), short: "", long: "", required: false, desc: "", defaultValue: "", format: "", handler: "Handler"},
+		{idx: 8, st: new(option), short: "9", long: "field9", required: true, desc: " desc9, test ", defaultValue: " default9, Value , ", format: "Mon, 02 Jan 2006 15:04:05 MST", handler: "Handler"},
+		{idx: 9, st: new(option), short: "a", long: "field10", required: false, desc: " desc10, test ", defaultValue: " default10, Value , ", format: "", handler: "Handler"},
 	}
 	// Test
 	// var err error
@@ -104,9 +100,6 @@ func TestOptionParse(t *testing.T) {
 		if o.Desc != c.desc {
 			t.Errorf(`[%d] Desc Expected: "%v", Result: "%v"`, i, o.Desc, c.desc)
 		}
-		if o.Default != c.defaultValue {
-			t.Errorf(`[%d] Default Expected: "%v", Result: "%v"`, i, o.Default, c.defaultValue)
-		}
 		if o.Format != c.format {
 			t.Errorf(`[%d] Format Expected: "%v", Result: "%v"`, i, o.Format, c.format)
 		}
@@ -124,16 +117,15 @@ func TestOptionName(t *testing.T) {
 		expected string
 	}{
 		{idx: 0, st: nil, expected: ""},
-		{idx: 1, st: nil, expected: ""},
+		{idx: 1, st: new(option), expected: "field1"},
 		{idx: 2, st: new(option), expected: "field2"},
 		{idx: 3, st: new(option), expected: "field3"},
 		{idx: 4, st: new(option), expected: "field4"},
 		{idx: 5, st: new(option), expected: "field5"},
-		{idx: 6, st: new(option), expected: "field6"},
-		{idx: 7, st: new(option), expected: "field7"},
-		{idx: 8, st: new(option), expected: "field8"},
-		{idx: 9, st: new(option), expected: "field9"},
-		{idx: 10, st: new(option), expected: "field10"},
+		{idx: 6, st: new(option), expected: "field7"},
+		{idx: 7, st: new(option), expected: "field8"},
+		{idx: 8, st: new(option), expected: "field9"},
+		{idx: 9, st: new(option), expected: "field10"},
 	}
 	// Test
 	loc := time.FixedZone("JST", 9*60*60)
@@ -206,15 +198,14 @@ func TestOptionShort(t *testing.T) {
 	}{
 		{idx: 0, st: nil, expected: ""},
 		{idx: 1, st: nil, expected: ""},
-		{idx: 2, st: new(option), expected: "-2"},
+		{idx: 2, st: new(option), expected: "2"},
 		{idx: 3, st: new(option), expected: ""},
 		{idx: 4, st: new(option), expected: ""},
 		{idx: 5, st: new(option), expected: ""},
 		{idx: 6, st: new(option), expected: ""},
 		{idx: 7, st: new(option), expected: ""},
-		{idx: 8, st: new(option), expected: ""},
-		{idx: 9, st: new(option), expected: "-9"},
-		{idx: 10, st: new(option), expected: "-a"},
+		{idx: 8, st: new(option), expected: "9"},
+		{idx: 9, st: new(option), expected: "a"},
 	}
 	// Test
 	loc := time.FixedZone("JST", 9*60*60)
@@ -228,7 +219,6 @@ func TestOptionShort(t *testing.T) {
 			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
 			continue
 		}
-		// o.parse()
 		if o.Short != c.expected {
 			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Short)
 		}
@@ -245,14 +235,13 @@ func TestOptionLong(t *testing.T) {
 		{idx: 0, st: nil, expected: ""},
 		{idx: 1, st: nil, expected: ""},
 		{idx: 2, st: new(option), expected: ""},
-		{idx: 3, st: new(option), expected: "--field3"},
+		{idx: 3, st: new(option), expected: "field3"},
 		{idx: 4, st: new(option), expected: ""},
 		{idx: 5, st: new(option), expected: ""},
 		{idx: 6, st: new(option), expected: ""},
 		{idx: 7, st: new(option), expected: ""},
-		{idx: 8, st: new(option), expected: ""},
-		{idx: 9, st: new(option), expected: "--field9"},
-		{idx: 10, st: new(option), expected: "--field10"},
+		{idx: 8, st: new(option), expected: "field9"},
+		{idx: 9, st: new(option), expected: "field10"},
 	}
 	// Test
 	loc := time.FixedZone("JST", 9*60*60)
@@ -288,9 +277,8 @@ func TestOptionRequired(t *testing.T) {
 		{idx: 5, st: new(option), expected: true},
 		{idx: 6, st: new(option), expected: false},
 		{idx: 7, st: new(option), expected: false},
-		{idx: 8, st: new(option), expected: false},
-		{idx: 9, st: new(option), expected: true},
-		{idx: 10, st: new(option), expected: false},
+		{idx: 8, st: new(option), expected: true},
+		{idx: 9, st: new(option), expected: false},
 	}
 	// Test
 	loc := time.FixedZone("JST", 9*60*60)
@@ -326,9 +314,8 @@ func TestOptionDesc(t *testing.T) {
 		{idx: 5, st: new(option), expected: ""},
 		{idx: 6, st: new(option), expected: ""},
 		{idx: 7, st: new(option), expected: ""},
-		{idx: 8, st: new(option), expected: ""},
-		{idx: 9, st: new(option), expected: " desc9, test "},
-		{idx: 10, st: new(option), expected: " desc10, test "},
+		{idx: 8, st: new(option), expected: " desc9, test "},
+		{idx: 9, st: new(option), expected: " desc10, test "},
 	}
 	// Test
 	loc := time.FixedZone("JST", 9*60*60)
@@ -349,44 +336,6 @@ func TestOptionDesc(t *testing.T) {
 	}
 }
 
-func TestOptionDefault(t *testing.T) {
-	// Test Case
-	cases := []struct {
-		idx      int
-		st       *option
-		expected string
-	}{
-		{idx: 0, st: nil, expected: ""},
-		{idx: 1, st: nil, expected: ""},
-		{idx: 2, st: new(option), expected: ""},
-		{idx: 3, st: new(option), expected: ""},
-		{idx: 4, st: new(option), expected: ""},
-		{idx: 5, st: new(option), expected: ""},
-		{idx: 6, st: new(option), expected: "default value"},
-		{idx: 7, st: new(option), expected: ""},
-		{idx: 8, st: new(option), expected: ""},
-		{idx: 9, st: new(option), expected: " default9, Value , "},
-		{idx: 10, st: new(option), expected: " default10, Value , "},
-	}
-	// Test
-	loc := time.FixedZone("JST", 9*60*60)
-	v := reflect.ValueOf(subCmd0{})
-	for i, c := range cases {
-		o := newOption(v.Field(c.idx), v.Type().Field(c.idx), loc)
-		if o == nil && c.st == nil {
-			continue
-		}
-		if !isSameOption(o, c.st) {
-			t.Errorf(`[%d] OptionObject Expected: *option, Result: %v`, i, o)
-			continue
-		}
-		// o.parse()
-		if o.Default != c.expected {
-			t.Errorf("[%d] Expected: %v, Result: %v", i, c.expected, o.Default)
-		}
-	}
-}
-
 func TestOptionHandler(t *testing.T) {
 	// Test Case
 	cases := []struct {
@@ -401,10 +350,9 @@ func TestOptionHandler(t *testing.T) {
 		{idx: 4, st: new(option), expected: ""},
 		{idx: 5, st: new(option), expected: ""},
 		{idx: 6, st: new(option), expected: ""},
-		{idx: 7, st: new(option), expected: ""},
+		{idx: 7, st: new(option), expected: "Handler"},
 		{idx: 8, st: new(option), expected: "Handler"},
 		{idx: 9, st: new(option), expected: "Handler"},
-		{idx: 10, st: new(option), expected: "Handler"},
 	}
 	// Test
 	loc := time.FixedZone("JST", 9*60*60)

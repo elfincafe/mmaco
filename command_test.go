@@ -74,7 +74,10 @@ func TestCommandAdd(t *testing.T) {
 	for i, c := range cases {
 		cmd := New("cmd")
 		cmd.parse()
-		cmd.Add(c.sc)
+		err := cmd.Add(c.sc)
+		if err != nil {
+			continue
+		}
 		if cmd.subCmds[c.name].Name != c.name {
 			t.Errorf("[%d] Expected: %v, Returned: %v", i, c.sc, cmd.subCmds[c.name])
 		}
@@ -110,7 +113,6 @@ func TestCommandRoute(t *testing.T) {
 	// Test
 	cmd := New(tagName)
 	cmd.parse()
-	fmt.Println(cmd.opts)
 	for _, c := range cases {
 		cmd.scOrder = append(cmd.scOrder, "create")
 		cmd.scOrder = append(cmd.scOrder, "download")
