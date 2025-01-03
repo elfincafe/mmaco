@@ -140,12 +140,12 @@ func (cmd *Command) Run() error {
 	}
 
 	// Validate
-	if sc.hasValidate {
-		out = sc.cmd.MethodByName("Validate").Call(nil)
-		if !out[0].IsNil() {
-			return out[0].Interface().(error)
-		}
+	// if sc.hasValidate {
+	out = sc.cmd.MethodByName("Validate").Call(nil)
+	if !out[0].IsNil() {
+		return out[0].Interface().(error)
 	}
+	// }
 
 	// Run
 	cmd.startSubCmd = time.Now()

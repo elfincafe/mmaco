@@ -7,24 +7,20 @@ import (
 	"time"
 )
 
-func newSubCommand(s any, loc *time.Location) *subCommand {
+func newSubCommand(s SubCommandInterface, loc *time.Location) *subCommand {
 	t := reflect.TypeOf(s)
-	if !isSubCommand(t) {
-		return nil
-	}
-
 	sc := new(subCommand)
 	sc.loc = loc
 	sc.cmd = reflect.ValueOf(s)
 	sc.opts = []*option{}
-	sc.Name = toSnakeCase(sc.cmd.Elem().Type().Name())
-	sc.hasValidate = hasValidateMethod(t)
+	sc.Name = toSnakeCase(sc.cmd.Type().Name())
+	// sc.hasValidate = hasValidateMethod(t)
 
-	if hasInitMethod(t) {
-		sc.cmd.MethodByName("Init").Call(nil)
-	}
+	// if hasInitMethod(t) {
+	sc.cmd.MethodByName("Init").Call(nil)
+	// }
 	if hasDescField(t) {
-		sc.Desc = sc.cmd.Elem().FieldByName("Desc").String()
+		sc.Desc = sc.cmd.FieldByName("Desc").String()
 	}
 
 	return sc
@@ -34,8 +30,8 @@ func (sc *subCommand) parse() error {
 	var err error
 
 	// Field
-	v := sc.cmd.Elem()
-	t := sc.cmd.Type().Elem()
+	v := sc.cmd
+	t := sc.cmd.Type()
 	for i := 0; i < t.NumField(); i++ {
 		o := newOption(v.Field(i), t.Field(i), sc.loc)
 		if o == nil {
