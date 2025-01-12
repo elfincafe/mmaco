@@ -1,4 +1,4 @@
-module mmaco
+module github.com/elfincafe/mmaco
 
 go 1.19.0
 
