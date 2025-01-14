@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func isSameSubCmd(aSt, bSt *subCommand) bool {
+func isSameSubCmd(aSt, bSt *SubCommand) bool {
 	a := reflect.TypeOf(aSt)
 	b := reflect.TypeOf(bSt)
 	if a.PkgPath() == b.PkgPath() && a.Name() == b.Name() {
@@ -20,11 +20,11 @@ func TestNewSubCommand(t *testing.T) {
 	// Test Case
 	cases := []struct {
 		cmd SubCommandInterface
-		st  *subCommand
+		st  *SubCommand
 	}{
-		{cmd: subCmd0{}, st: new(subCommand)},
-		{cmd: subCmd1{}, st: new(subCommand)},
-		{cmd: subCmd2{}, st: new(subCommand)},
+		{cmd: subCmd0{}, st: new(SubCommand)},
+		{cmd: subCmd1{}, st: new(SubCommand)},
+		{cmd: subCmd2{}, st: new(SubCommand)},
 	}
 
 	// Test
