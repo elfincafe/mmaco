@@ -8,6 +8,24 @@ import (
 	"time"
 )
 
+type (
+	option struct {
+		value     reflect.Value
+		field     reflect.StructField
+		loc       *time.Location
+		specified bool
+		Kind      Kind
+		Name      string
+		Short     string
+		Long      string
+		Required  bool
+		Desc      string
+		Default   string
+		Format    string
+		Handler   string
+	}
+)
+
 func newOption(value reflect.Value, field reflect.StructField, loc *time.Location) *option {
 	if _, ok := field.Tag.Lookup(tagName); !ok {
 		return nil
@@ -60,7 +78,7 @@ func newOption(value reflect.Value, field reflect.StructField, loc *time.Locatio
 	return o
 }
 
-func (o *option) validate(sc *subCommand) error {
+func (o *option) validate(sc *SubCommand) error {
 	if o.Short != "" && len(o.Short) > 1 {
 		return fmt.Errorf(`"short" must be 1 character`)
 	} else if len(o.Short) == 1 && !isAlphaNumeric([]byte(o.Short)[0]) {
@@ -91,6 +109,7 @@ func (o *option) isShort(arg string) bool {
 		return false
 	}
 }
+
 func (o *option) isLong(arg string) bool {
 	if o.Long != "" && arg == "--"+o.Long {
 		return true

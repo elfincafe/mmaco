@@ -1,14 +1,22 @@
 package mmaco
 
-func (h *help) Init() {
+type (
+	help struct {
+		Desc string
+	}
+)
+
+func (h help) Init() {
 	println("Exec: Help.Init")
 }
-func (h *help) Validate() error {
+
+func (h help) Validate() error {
 	println("Exec: Help.Validate")
 	return nil
 }
-func (h *help) Run(args []string) error {
-	println("Exec: Help.Init")
+
+func (h help) Run(ctx *Context) error {
+	println("Exec: Help.Run")
 	// Sub Command Help
 	// if len(cmd.subCmd) > 0 {
 	// 	return cmd.helpSubCommand()
@@ -46,7 +54,7 @@ func (h *help) Run(args []string) error {
 	return nil
 }
 
-func (h *help) helpSubCommand() error {
+func (h help) helpSubCommand() error {
 	// sc := cmd.subCmds[cmd.subCmd]
 
 	// sb := strings.Builder{}

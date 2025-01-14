@@ -7,9 +7,24 @@ import (
 	"time"
 )
 
-func newSubCommand(s SubCommandInterface, loc *time.Location) *subCommand {
+type (
+	SubCommandInterface interface {
+		Init()
+		Validate() error
+		Run(*Context) error
+	}
+	SubCommand struct {
+		Name string
+		Desc string
+		cmd  reflect.Value
+		opts []*option
+		loc  *time.Location
+	}
+)
+
+func newSubCommand(s SubCommandInterface, loc *time.Location) *SubCommand {
 	t := reflect.TypeOf(s)
-	sc := new(subCommand)
+	sc := new(SubCommand)
 	sc.loc = loc
 	sc.cmd = reflect.ValueOf(s)
 	sc.opts = []*option{}
@@ -26,7 +41,7 @@ func newSubCommand(s SubCommandInterface, loc *time.Location) *subCommand {
 	return sc
 }
 
-func (sc *subCommand) parse() error {
+func (sc *SubCommand) parse() error {
 	var err error
 
 	// Field
@@ -47,7 +62,7 @@ func (sc *subCommand) parse() error {
 	return nil
 }
 
-func (sc *subCommand) parseArgs(args []string) ([]string, error) {
+func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 	var err error
 	in, out := []reflect.Value{}, []reflect.Value{}
 	params := []string{}

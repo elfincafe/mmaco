@@ -38,54 +38,6 @@ const (
 type (
 	Kind    int
 	ArgType int
-
-	Command struct {
-		Name        string
-		loc         *time.Location
-		subCmds     map[string]*subCommand
-		scOrder     []string
-		opts        []*option
-		start       time.Time
-		startSubCmd time.Time
-		endSubCmd   time.Time
-		report      bool `mmaco:"short=r,long=report,desc=report verbosely."`
-		help        bool `mmaco:"short=h,long=help,desc=this help."`
-	}
-
-	SubCommandInterface interface {
-		Init()
-		Validate() error
-		Run([]string) error
-	}
-
-	subCommand struct {
-		Name string
-		Desc string
-		cmd  reflect.Value
-		opts []*option
-		// hasValidate bool
-		loc *time.Location
-	}
-
-	option struct {
-		value     reflect.Value
-		field     reflect.StructField
-		loc       *time.Location
-		specified bool
-		Kind      Kind
-		Name      string
-		Short     string
-		Long      string
-		Required  bool
-		Desc      string
-		Default   string
-		Format    string
-		Handler   string
-	}
-
-	help struct {
-		Desc string
-	}
 )
 
 func toSnakeCase(s string) string {
@@ -240,6 +192,7 @@ func tryParseDateTime(s string) (time.Time, error) {
 // }
 
 func hasDescField(t reflect.Type) bool {
+
 	field, ok := t.FieldByName("Desc")
 	if !ok {
 		return false
