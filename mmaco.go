@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"reflect"
 	"regexp"
-	"time"
 )
 
 const (
@@ -104,101 +103,4 @@ func getFieldKind(field reflect.StructField) Kind {
 	default:
 		return Unknown
 	}
-}
-
-func tryParseDateTime(s string) (time.Time, error) {
-	layouts := []string{
-		time.DateTime,
-		time.RFC3339,
-		time.RFC3339Nano,
-		time.RFC822,
-		time.RFC822Z,
-		time.Layout,
-		time.ANSIC,
-		time.UnixDate,
-		time.RubyDate,
-		time.RFC850,
-		time.RFC1123,
-		time.RFC1123Z,
-		time.Stamp,
-		time.StampMilli,
-		time.StampMicro,
-		time.StampNano,
-		time.DateOnly,
-		time.TimeOnly,
-		time.Kitchen,
-	}
-	var t time.Time
-	var err error
-	for _, layout := range layouts {
-		t, err = time.Parse(layout, s)
-		if err == nil {
-			return t, nil
-		}
-	}
-	return t, err
-}
-
-// func isSubCommand(t reflect.Type) bool {
-// 	if t.Kind() != reflect.Pointer || t.Elem().Kind() != reflect.Struct {
-// 		return false
-// 	}
-// 	if !hasRunMethod(t) {
-// 		return false
-// 	}
-// 	return true
-// }
-
-// func hasInitMethod(t reflect.Type) bool {
-// 	method, ok := t.MethodByName("Init")
-// 	if !ok {
-// 		return false
-// 	}
-// 	if method.Type.NumIn() != 1 {
-// 		return false
-// 	}
-// 	if method.Type.NumOut() != 0 {
-// 		return false
-// 	}
-// 	return true
-// }
-
-// func hasValidateMethod(t reflect.Type) bool {
-// 	method, ok := t.MethodByName("Validate")
-// 	if !ok {
-// 		return false
-// 	}
-// 	if method.Type.NumIn() != 1 {
-// 		return false
-// 	}
-// 	if method.Type.NumOut() != 1 || method.Type.Out(0).Kind() != reflect.Interface {
-// 		return false
-// 	}
-// 	return true
-// }
-
-// func hasRunMethod(t reflect.Type) bool {
-// 	method, ok := t.MethodByName("Run")
-// 	if !ok {
-// 		return false
-// 	}
-// 	if method.Type.NumIn() != 2 || method.Type.In(1).Kind() != reflect.Slice {
-// 		return false
-// 	}
-// 	if method.Type.NumOut() != 1 || method.Type.Out(0).Kind() != reflect.Interface {
-// 		return false
-// 	}
-// 	return true
-// }
-
-func hasDescField(t reflect.Type) bool {
-
-	field, ok := t.FieldByName("Desc")
-	if !ok {
-		return false
-	}
-	if field.Type.Kind() != reflect.String {
-		return false
-	}
-	return true
 }

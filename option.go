@@ -10,10 +10,6 @@ import (
 
 type (
 	option struct {
-		value     reflect.Value
-		field     reflect.StructField
-		loc       *time.Location
-		specified bool
 		Kind      Kind
 		Name      string
 		Short     string
@@ -23,10 +19,14 @@ type (
 		Default   string
 		Format    string
 		Handler   string
+		value     reflect.Value
+		field     reflect.StructField
+		ctx       *Context
+		specified bool
 	}
 )
 
-func newOption(value reflect.Value, field reflect.StructField, loc *time.Location) *option {
+func newOption(value reflect.Value, field reflect.StructField) *option {
 	if _, ok := field.Tag.Lookup(tagName); !ok {
 		return nil
 	}
@@ -35,7 +35,7 @@ func newOption(value reflect.Value, field reflect.StructField, loc *time.Locatio
 	o.specified = false
 	o.value = value
 	o.field = field
-	o.loc = loc
+	o.ctx = nil
 	o.Kind = getFieldKind(field)
 	o.Name = field.Name
 	o.Short = ""
@@ -220,8 +220,8 @@ func (o *option) set(value string) error {
 	case Time:
 		var err error
 		var t time.Time
-		if o.loc != nil {
-			t, err = time.ParseInLocation(o.Format, value, o.loc)
+		if o.ctx.loc != nil {
+			t, err = time.ParseInLocation(o.Format, value, o.ctx.loc)
 		} else {
 			t, err = time.Parse(o.Format, value)
 		}
