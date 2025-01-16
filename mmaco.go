@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"reflect"
 	"regexp"
-	"time"
 )
 
 const (
@@ -104,37 +103,4 @@ func getFieldKind(field reflect.StructField) Kind {
 	default:
 		return Unknown
 	}
-}
-
-func tryParseDateTime(s string) (time.Time, error) {
-	layouts := []string{
-		time.DateTime,
-		time.RFC3339,
-		time.RFC3339Nano,
-		time.RFC822,
-		time.RFC822Z,
-		time.Layout,
-		time.ANSIC,
-		time.UnixDate,
-		time.RubyDate,
-		time.RFC850,
-		time.RFC1123,
-		time.RFC1123Z,
-		time.Stamp,
-		time.StampMilli,
-		time.StampMicro,
-		time.StampNano,
-		time.DateOnly,
-		time.TimeOnly,
-		time.Kitchen,
-	}
-	var t time.Time
-	var err error
-	for _, layout := range layouts {
-		t, err = time.Parse(layout, s)
-		if err == nil {
-			return t, nil
-		}
-	}
-	return t, err
 }

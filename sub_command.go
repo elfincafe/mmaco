@@ -44,10 +44,9 @@ func (sc *SubCommand) parse() error {
 	var err error
 
 	// Field
-	v := sc.cmd
-	t := sc.cmd.Type()
+	t := sc.cmd.Elem().Type()
 	for i := 0; i < t.NumField(); i++ {
-		o := newOption(v.Field(i), t.Field(i))
+		o := newOption(sc.cmd.Elem().Field(i), t.Field(i))
 		if o == nil {
 			continue
 		}

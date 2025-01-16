@@ -51,11 +51,11 @@ func newOption(value reflect.Value, field reflect.StructField) *option {
 		t := strings.TrimLeft(v, trimSpace)
 		if strings.HasPrefix(strings.ToLower(t), "short=") {
 			short := strings.TrimSpace(t[6:])
-			o.Short = "-" + short
+			o.Short = short
 			key = "short"
 		} else if strings.HasPrefix(strings.ToLower(t), "long=") {
 			long := strings.TrimSpace(t[5:])
-			o.Long = "--" + long
+			o.Long = long
 			key = "long"
 		} else if strings.HasPrefix(strings.ToLower(t), "desc=") {
 			o.Desc = t[5:]

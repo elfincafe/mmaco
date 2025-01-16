@@ -33,9 +33,8 @@ func (cmd *Command) SetLocation(loc *time.Location) {
 
 func (cmd *Command) parse() error {
 	v := reflect.ValueOf(cmd).Elem()
-	t := v.Type()
-	for i := 0; i < t.NumField(); i++ {
-		opt := newOption(v.Field(i), t.Field(i))
+	for i := 0; i < v.Type().NumField(); i++ {
+		opt := newOption(v.Field(i), v.Type().Field(i))
 		if opt == nil {
 			continue
 		}
@@ -110,16 +109,17 @@ func (cmd *Command) Run() error {
 	subCmdIdx := cmd.route(rowArgs)
 	subCmd := ""
 	if cmd.help { // passed -h or --help option.
-		// println(11)
 		subCmd = helpCmdName
 	} else if subCmdIdx < 0 { // passed no sub command.
-		// println(12)
 		subCmd = helpCmdName
 	} else {
-		// println(13)
 		subCmd = cmd.ctx.RowArg(subCmdIdx)
 	}
 	sc := cmd.ctx.subCmds[subCmd]
+	err = sc.parse()
+	if err != nil {
+		return err
+	}
 
 	// Parse Argument for Sub Command
 	cmd.ctx.args, err = sc.parseArgs(rowArgs[subCmdIdx+1:])

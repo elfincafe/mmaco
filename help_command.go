@@ -36,7 +36,7 @@ func (cmd *help) Run(ctx *Context) error {
 	for _, o := range ctx.cmd.opts {
 		max = int(math.Max(float64(max), float64(len(o.Long))))
 	}
-	format := fmt.Sprintf("    %%-2s, %%-%ds   %%s\n", max)
+	format := fmt.Sprintf("    -%%-s, --%%-%ds   %%s\n", max)
 	for _, o := range ctx.cmd.opts {
 		sb.WriteString(fmt.Sprintf(format, o.Short, o.Long, o.Desc))
 	}
