@@ -127,6 +127,9 @@ func (o *option) has(arg string) bool {
 }
 
 func (o *option) set(value string) error {
+	if !o.value.CanSet() {
+		return fmt.Errorf(`field "%s" is unexported`, o.Name)
+	}
 	switch o.Kind {
 	case Bool:
 		o.value.SetBool(true)
@@ -215,8 +218,12 @@ func (o *option) set(value string) error {
 		o.value.SetFloat(v)
 		o.specified = true
 	case String:
-		o.value.SetString(value)
-		o.specified = true
+		if o.value.CanSet() {
+			o.value.SetString(value)
+			o.specified = true
+		} else {
+			return fmt.Errorf(`field "%s" is unexported.`, o.Name)
+		}
 	case Time:
 		var err error
 		var t time.Time

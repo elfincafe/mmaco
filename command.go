@@ -107,15 +107,21 @@ func (cmd *Command) Run() error {
 	// Routing
 	rowArgs := cmd.ctx.RowArgs()
 	subCmdIdx := cmd.route(rowArgs)
-	subCmd := ""
+	subCmdName := ""
 	if cmd.help { // passed -h or --help option.
-		subCmd = helpCmdName
+		subCmdName = helpCmdName
 	} else if subCmdIdx < 0 { // passed no sub command.
-		subCmd = helpCmdName
+		subCmdName = helpCmdName
 	} else {
-		subCmd = cmd.ctx.RowArg(subCmdIdx)
+		subCmdName = cmd.ctx.RowArg(subCmdIdx)
 	}
-	sc := cmd.ctx.subCmds[subCmd]
+
+	// Copy Sub Command
+	sc := new(SubCommand)
+	sc.Name = cmd.ctx.subCmds[subCmdName].Name
+	sc.Desc = cmd.ctx.subCmds[subCmdName].Desc
+	sc.cmd = cmd.ctx.subCmds[subCmdName].cmd
+
 	err = sc.parse()
 	if err != nil {
 		return err
@@ -139,7 +145,7 @@ func (cmd *Command) Run() error {
 	cmd.ctx.subCmdFinish = time.Now().UnixMicro()
 
 	// Report
-	if cmd.report && subCmd != helpCmdName {
+	if cmd.report && subCmdName != helpCmdName {
 		cmd.showReport(cmd.ctx)
 	}
 
