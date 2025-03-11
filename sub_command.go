@@ -27,14 +27,14 @@ func newSubCommand(s SubCommandInterface) *SubCommand {
 	t := reflect.TypeOf(s)
 	sc := new(SubCommand)
 	sc.Name = toSnakeCase(t.Elem().Name())
-	sc.Desc = ""
 	sc.cmd = reflect.ValueOf(s)
+	sc.Desc = ""
 	sc.opts = []*option{}
 
 	// description
-	field, ok := t.Elem().FieldByName("Desc")
-	if ok && field.Type.Kind() == reflect.String {
-		sc.Desc = sc.cmd.Elem().FieldByName("Desc").String()
+	field := sc.cmd.Elem().FieldByName("Desc")
+	if field.IsValid() {
+		sc.Desc = field.String()
 	}
 
 	return sc
@@ -44,9 +44,9 @@ func (sc *SubCommand) parse() error {
 	var err error
 
 	// Field
-	t := sc.cmd.Elem().Type()
-	for i := 0; i < t.NumField(); i++ {
-		o := newOption(sc.cmd.Elem().Field(i), t.Field(i))
+	t := sc.cmd
+	for i := 0; i < t.Elem().NumField(); i++ {
+		o := newOption(sc.cmd.Elem().Field(i), t.Elem().Type().Field(i))
 		if o == nil {
 			continue
 		}
@@ -78,6 +78,9 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 			if (o.isShort(arg) || o.isLong(arg)) && o.Kind == Bool {
 				if o.Handler == "" {
 					err = o.set("true")
+					if err != nil {
+						return nil, err
+					}
 					setFlg = true
 				} else {
 					in = []reflect.Value{reflect.ValueOf("true")}
@@ -104,6 +107,9 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 				}
 				if o.Handler == "" {
 					err = o.set(argVal)
+					if err != nil {
+						return nil, err
+					}
 					setFlg = true
 					skip = true
 				} else {
@@ -123,6 +129,9 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 				argVal := arg[length:]
 				if o.Handler == "" {
 					err = o.set(argVal)
+					if err != nil {
+						return nil, err
+					}
 					setFlg = true
 				} else {
 					in = []reflect.Value{reflect.ValueOf(argVal)}
