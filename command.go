@@ -75,22 +75,23 @@ func (cmd *Command) route(args []string) int {
 
 func (cmd *Command) showReport(ctx *Context) {
 	subCmdTime := time.UnixMicro(cmd.ctx.subCmdFinish).Sub(time.UnixMicro(cmd.ctx.subCmdStart))
-	cmdTime := time.Now().Sub(time.UnixMicro(cmd.ctx.cmdStart))
+	cmdTime := time.Since(time.UnixMicro(cmd.ctx.cmdStart))
 	buf := strings.Builder{}
 	buf.WriteString("\n")
 	buf.WriteString("------------------------------------------------------------\n")
 	buf.WriteString(" MMaco CLI Framework \n")
 	buf.WriteString("------------------------------------------------------------\n")
-	buf.WriteString(fmt.Sprintf(" DateTime:   %v\n", time.UnixMicro(cmd.ctx.cmdStart).In(cmd.ctx.loc)))
-	buf.WriteString(fmt.Sprintf(" Command:    %v\n", cmdTime))
-	buf.WriteString(fmt.Sprintf(" SubCommand: %v\n", subCmdTime))
+	buf.WriteString(fmt.Sprintf(" Name:     %v\n", ctx.subCmdName))
+	buf.WriteString(fmt.Sprintf(" Args:     %v\n", ctx.rawArgs))
+	buf.WriteString(fmt.Sprintf(" DateTime: %v\n", time.UnixMicro(cmd.ctx.cmdStart).In(cmd.ctx.loc)))
+	buf.WriteString(fmt.Sprintf(" ExecTime: %v\n", cmdTime))
+	buf.WriteString(fmt.Sprintf(" SubTime:  %v\n", subCmdTime))
 	buf.WriteString("------------------------------------------------------------\n")
 	println(buf.String())
 }
 
 func (cmd *Command) Run() error {
 	var err error
-	in, out := []reflect.Value{}, []reflect.Value{}
 
 	// Add Help Command
 	err = cmd.addSubCmd(new(help), true)
@@ -105,7 +106,7 @@ func (cmd *Command) Run() error {
 	}
 
 	// Routing
-	rowArgs := cmd.ctx.RowArgs()
+	rowArgs := cmd.ctx.RawArgs()
 	subCmdIdx := cmd.route(rowArgs)
 	subCmdName := ""
 	if cmd.help { // passed -h or --help option.
@@ -113,11 +114,15 @@ func (cmd *Command) Run() error {
 	} else if subCmdIdx < 0 { // passed no sub command.
 		subCmdName = helpCmdName
 	} else {
-		subCmdName = cmd.ctx.RowArg(subCmdIdx)
+		subCmdName = cmd.ctx.RawArg(subCmdIdx)
 	}
+	cmd.ctx.subCmdName = subCmdName
 
 	// Copy Sub Command
 	sc := new(SubCommand)
+	if _, ok := cmd.ctx.subCmds[subCmdName]; !ok {
+		return fmt.Errorf(`unknown command "%s" is specified`, subCmdName)
+	}
 	sc.Name = cmd.ctx.subCmds[subCmdName].Name
 	sc.Desc = cmd.ctx.subCmds[subCmdName].Desc
 	sc.cmd = cmd.ctx.subCmds[subCmdName].cmd
@@ -134,12 +139,13 @@ func (cmd *Command) Run() error {
 	}
 
 	// Validate
-	out = sc.cmd.MethodByName("Validate").Call(nil)
+	out := sc.cmd.MethodByName("Validate").Call(nil)
 	if !out[0].IsNil() {
 		return out[0].Interface().(error)
 	}
 
 	// Run
+	in := []reflect.Value{}
 	cmd.ctx.subCmdStart = time.Now().UnixMicro()
 	out = sc.cmd.MethodByName("Run").Call(append(in, reflect.ValueOf(cmd.ctx)))
 	cmd.ctx.subCmdFinish = time.Now().UnixMicro()

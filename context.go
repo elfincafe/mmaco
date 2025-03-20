@@ -5,29 +5,29 @@ import "time"
 type (
 	Context struct {
 		cmd          *Command
-		subCmd       *SubCommand
+		subCmdName   string
 		subCmds      map[string]*SubCommand
 		scOrder      []string
 		loc          *time.Location
 		cmdStart     int64
 		subCmdStart  int64
 		subCmdFinish int64
-		rowArgs      []string
+		rawArgs      []string
 		args         []string
 	}
 )
 
-func newContext(rowArgs []string) *Context {
+func newContext(rawArgs []string) *Context {
 	ctx := new(Context)
 	ctx.cmd = nil
-	ctx.subCmd = nil
+	ctx.subCmdName = ""
 	ctx.subCmds = map[string]*SubCommand{}
 	ctx.scOrder = []string{}
 	ctx.loc, _ = time.LoadLocation("")
 	ctx.cmdStart = time.Now().UnixMicro()
 	ctx.subCmdStart = int64(0)
 	ctx.subCmdFinish = int64(0)
-	ctx.rowArgs = rowArgs
+	ctx.rawArgs = rawArgs
 	ctx.args = []string{}
 	return ctx
 }
@@ -63,17 +63,17 @@ func (ctx *Context) NumArg() int {
 	return len(ctx.args)
 }
 
-func (ctx *Context) RowArg(i int) string {
-	if i >= 0 && i < len(ctx.rowArgs) {
-		return ctx.rowArgs[i]
+func (ctx *Context) RawArg(i int) string {
+	if i >= 0 && i < len(ctx.rawArgs) {
+		return ctx.rawArgs[i]
 	}
 	return ""
 }
 
-func (ctx *Context) RowArgs() []string {
-	return ctx.rowArgs
+func (ctx *Context) RawArgs() []string {
+	return ctx.rawArgs
 }
 
-func (ctx *Context) RowNumArg() int {
-	return len(ctx.rowArgs)
+func (ctx *Context) RawNumArg() int {
+	return len(ctx.rawArgs)
 }
