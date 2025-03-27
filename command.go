@@ -15,7 +15,7 @@ type (
 		name       string
 		opts       []*option
 		subcmdRule *regexp.Regexp
-		debug      bool `mmaco:"short=d,desc=run as debug mode"`
+		debug      bool `mmaco:"long=debug,desc=run as debug mode"`
 		report     bool `mmaco:"long=report,desc=report when command is finished without error"`
 		help       bool `mmaco:"short=h,long=help,desc=this help"`
 	}
