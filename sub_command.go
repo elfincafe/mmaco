@@ -15,53 +15,43 @@ type (
 	SubCommand struct {
 		Name string
 		Desc string
-		cmd  reflect.Value
+		cmd  SubCommandInterface
 		ctx  *Context
 		opts []*option
 	}
 )
 
-func newSubCommand(s SubCommandInterface) *SubCommand {
-
-	s.Init()
-	t := reflect.TypeOf(s)
+func newSubCommand(s SubCommandInterface, name, desc string) *SubCommand {
 	sc := new(SubCommand)
-	sc.Name = toSnakeCase(t.Elem().Name())
-	sc.cmd = reflect.ValueOf(s)
-	sc.Desc = ""
+	sc.Name = name
+	sc.Desc = desc
+	sc.cmd = s
 	sc.opts = []*option{}
-
-	// description
-	field := sc.cmd.Elem().FieldByName("Desc")
-	if field.IsValid() {
-		sc.Desc = field.String()
-	}
-
 	return sc
 }
 
-func (sc *SubCommand) parse() error {
-	var err error
-
+func (sc *SubCommand) parse() {
 	// Field
-	t := sc.cmd
-	for i := 0; i < t.Elem().NumField(); i++ {
-		o := newOption(sc.cmd.Elem().Field(i), t.Elem().Type().Field(i))
-		if o == nil {
+	v := reflect.ValueOf(sc.cmd).Elem()
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Field(i)
+		ft := t.Field(i)
+		if f.Kind() == reflect.Pointer {
 			continue
 		}
-		err = o.validate(sc)
-		if err != nil {
-			return err
+		tag := ft.Tag.Get(tagName)
+		if tag == "" {
+			continue
 		}
-		sc.opts = append(sc.opts, o)
+		opt := newOption(f, ft)
+		sc.ctx.subCmd.opts = append(sc.ctx.subCmd.opts, opt)
 	}
-
-	return nil
 }
 
 func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 	var err error
+	v := reflect.ValueOf(sc.cmd)
 	in, out := []reflect.Value{}, []reflect.Value{}
 	params := []string{}
 	maxIdx := len(args) - 1
@@ -73,7 +63,7 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 			skip = false
 			continue
 		}
-		for _, o := range sc.opts {
+		for _, o := range sc.ctx.subCmd.opts {
 			err = nil
 			if (o.isShort(arg) || o.isLong(arg)) && o.Kind == Bool {
 				if o.Handler == "" {
@@ -84,7 +74,7 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 					setFlg = true
 				} else {
 					in = []reflect.Value{reflect.ValueOf("true")}
-					out = sc.cmd.MethodByName(o.Handler).Call(in)
+					out = v.MethodByName(o.Handler).Call(in)
 					setFlg = true
 					if !out[0].IsNil() {
 						err = out[0].Interface().(error)
@@ -114,7 +104,7 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 					skip = true
 				} else {
 					in = []reflect.Value{reflect.ValueOf(argVal)}
-					out = sc.cmd.MethodByName(o.Handler).Call(in)
+					out = v.MethodByName(o.Handler).Call(in)
 					setFlg = true
 					skip = true
 					if !out[0].IsNil() {
@@ -135,7 +125,7 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 					setFlg = true
 				} else {
 					in = []reflect.Value{reflect.ValueOf(argVal)}
-					out = sc.cmd.MethodByName(o.Handler).Call(in)
+					out = v.MethodByName(o.Handler).Call(in)
 					setFlg = true
 					if !out[0].IsNil() {
 						err = out[0].Interface().(error)

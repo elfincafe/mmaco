@@ -4,73 +4,110 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
 
 type (
 	Command struct {
-		Name   string
-		ctx    *Context
-		opts   []*option
-		report bool `mmaco:"short=r,long=report,desc=report verbosely."`
-		help   bool `mmaco:"short=h,long=help,desc=this help."`
+		ctx        *Context
+		name       string
+		opts       []*option
+		subcmdRule *regexp.Regexp
+		debug      bool `mmaco:"short=d,desc=run as debug mode"`
+		report     bool `mmaco:"long=report,desc=report when command is finished without error"`
+		help       bool `mmaco:"short=h,long=help,desc=this help"`
 	}
 )
 
 func New(name string) *Command {
-	ctx := newContext(os.Args[1:])
-	ctx.cmd = new(Command)
-	ctx.cmd.ctx = ctx
-	ctx.cmd.Name = name
-	ctx.cmd.opts = []*option{}
-	return ctx.cmd
+	ctx := newContext(name, os.Args[1:])
+	cmd := new(Command)
+	ctx.cmd = cmd
+	cmd.ctx = ctx
+	cmd.name = name
+	cmd.opts = []*option{}
+	cmd.subcmdRule = regexp.MustCompile(`^[a-z][\da-z_\-:]*[\da-z]$`)
+	cmd.debug = false
+	cmd.report = false
+	cmd.help = false
+	return cmd
 }
 
 func (cmd *Command) SetLocation(loc *time.Location) {
 	cmd.ctx.loc = loc
 }
 
-func (cmd *Command) parse() error {
+func (cmd *Command) parse() {
 	v := reflect.ValueOf(cmd).Elem()
-	for i := 0; i < v.Type().NumField(); i++ {
-		opt := newOption(v.Field(i), v.Type().Field(i))
-		if opt == nil {
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Field(i)
+		ft := t.Field(i)
+		if f.Kind() == reflect.Pointer {
 			continue
 		}
+		tag := ft.Tag.Get(tagName)
+		if tag == "" {
+			continue
+		}
+		opt := newOption(f, ft)
 		cmd.opts = append(cmd.opts, opt)
 	}
-	return nil
 }
 
-func (cmd *Command) Add(subCmd SubCommandInterface) error {
-	return cmd.addSubCmd(subCmd, false)
+func (cmd *Command) Add(subCmd SubCommandInterface, name, desc string) error {
+	if !cmd.subcmdRule.MatchString(name) {
+		return fmt.Errorf("sub command name is wrong (%s)", cmd.subcmdRule.String())
+	}
+	v := reflect.ValueOf(subCmd)
+	if v.Kind() != reflect.Pointer {
+		return fmt.Errorf(`sub command must be a pointer to struct`)
+	}
+	return cmd.addSubCmd(subCmd, name, desc, false)
 }
 
-func (cmd *Command) addSubCmd(subCmd SubCommandInterface, force bool) error {
-	sc := newSubCommand(subCmd)
+func (cmd *Command) addSubCmd(subCmd SubCommandInterface, name, desc string, force bool) error {
+	sc := newSubCommand(subCmd, name, desc)
 	if sc.Name == helpCmdName && !force {
-		return fmt.Errorf(`reserved command: help`)
+		return fmt.Errorf(`"help" is reserved`)
 	}
 	sc.ctx = cmd.ctx
+	if _, ok := cmd.ctx.subCmds[sc.Name]; !ok {
+		cmd.ctx.scOrder = append(cmd.ctx.scOrder, sc.Name)
+	}
 	cmd.ctx.subCmds[sc.Name] = sc
-	cmd.ctx.scOrder = append(cmd.ctx.scOrder, sc.Name)
 	return nil
 }
 
-func (cmd *Command) route(args []string) int {
+func (cmd *Command) route(args []string) (int, error) {
 	idx := -1
-	for i, arg := range args {
-		if arg == "-r" || arg == "--report" {
-			cmd.report = true
-		} else if arg == "-h" || arg == "--help" {
-			cmd.help = true
-		} else {
-			idx = i
-			break
+	arg := ""
+	for idx, arg = range args {
+		flg := false
+		for _, o := range cmd.opts {
+			if o.isShort(arg) || o.isLong(arg) {
+				switch o.Name {
+				case "debug":
+					flg = true
+					cmd.debug = true
+				case "report":
+					flg = true
+					cmd.report = true
+				case "help":
+					flg = true
+					cmd.help = true
+				}
+			}
+		}
+		if !flg && strings.HasPrefix(arg, "-") {
+			return -1, fmt.Errorf(`unknown option "%s"`, arg)
+		} else if !flg {
+			return idx, nil
 		}
 	}
-	return idx
+	return -1, nil
 }
 
 func (cmd *Command) showReport(ctx *Context) {
@@ -81,7 +118,7 @@ func (cmd *Command) showReport(ctx *Context) {
 	buf.WriteString("------------------------------------------------------------\n")
 	buf.WriteString(" MMaco CLI Framework \n")
 	buf.WriteString("------------------------------------------------------------\n")
-	buf.WriteString(fmt.Sprintf(" Name:     %v\n", ctx.subCmdName))
+	buf.WriteString(fmt.Sprintf(" Name:     %v\n", ctx.subCmd.Name))
 	buf.WriteString(fmt.Sprintf(" Args:     %v\n", ctx.rawArgs))
 	buf.WriteString(fmt.Sprintf(" DateTime: %v\n", time.UnixMicro(cmd.ctx.cmdStart).In(cmd.ctx.loc)))
 	buf.WriteString(fmt.Sprintf(" ExecTime: %v\n", cmdTime))
@@ -94,20 +131,20 @@ func (cmd *Command) Run() error {
 	var err error
 
 	// Add Help Command
-	err = cmd.addSubCmd(new(help), true)
+	err = cmd.addSubCmd(new(help), "help", "this help", true)
 	if err != nil {
 		return err
 	}
 
 	// Parse Options
-	err = cmd.parse()
-	if err != nil {
-		return err
-	}
+	cmd.parse()
 
 	// Routing
 	rowArgs := cmd.ctx.RawArgs()
-	subCmdIdx := cmd.route(rowArgs)
+	subCmdIdx, err := cmd.route(rowArgs)
+	if err != nil {
+		return err
+	}
 	subCmdName := ""
 	if cmd.help { // passed -h or --help option.
 		subCmdName = helpCmdName
@@ -116,38 +153,37 @@ func (cmd *Command) Run() error {
 	} else {
 		subCmdName = cmd.ctx.RawArg(subCmdIdx)
 	}
-	cmd.ctx.subCmdName = subCmdName
+
+	// Debug Mode
+	debugMode = cmd.debug
 
 	// Copy Sub Command
-	sc := new(SubCommand)
 	if _, ok := cmd.ctx.subCmds[subCmdName]; !ok {
 		return fmt.Errorf(`unknown command "%s" is specified`, subCmdName)
 	}
-	sc.Name = cmd.ctx.subCmds[subCmdName].Name
-	sc.Desc = cmd.ctx.subCmds[subCmdName].Desc
-	sc.cmd = cmd.ctx.subCmds[subCmdName].cmd
+	cmd.ctx.subCmd = cmd.ctx.subCmds[subCmdName]
 
-	err = sc.parse()
-	if err != nil {
-		return err
-	}
+	// Init
+	cmd.ctx.subCmd.cmd.Init()
 
-	// Parse Argument for Sub Command
-	cmd.ctx.args, err = sc.parseArgs(rowArgs[subCmdIdx+1:])
+	// parse arguments for global options
+	cmd.ctx.subCmd.parse()
+
+	// Parse Argument for Sub Command options
+	cmd.ctx.args, err = cmd.ctx.subCmd.parseArgs(rowArgs[subCmdIdx+1:])
 	if err != nil {
 		return err
 	}
 
 	// Validate
-	out := sc.cmd.MethodByName("Validate").Call(nil)
-	if !out[0].IsNil() {
-		return out[0].Interface().(error)
+	err = cmd.ctx.subCmd.cmd.Validate()
+	if err != nil {
+		return err
 	}
 
 	// Run
-	in := []reflect.Value{}
 	cmd.ctx.subCmdStart = time.Now().UnixMicro()
-	out = sc.cmd.MethodByName("Run").Call(append(in, reflect.ValueOf(cmd.ctx)))
+	err = cmd.ctx.subCmd.cmd.Run(cmd.ctx)
 	cmd.ctx.subCmdFinish = time.Now().UnixMicro()
 
 	// Report
@@ -155,9 +191,5 @@ func (cmd *Command) Run() error {
 		cmd.showReport(cmd.ctx)
 	}
 
-	if out[0].IsNil() {
-		return nil
-	} else {
-		return out[0].Interface().(error)
-	}
+	return err
 }

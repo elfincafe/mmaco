@@ -3,6 +3,7 @@ package mmaco
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -27,17 +28,13 @@ type (
 )
 
 func newOption(value reflect.Value, field reflect.StructField) *option {
-	if _, ok := field.Tag.Lookup(tagName); !ok {
-		return nil
-	}
-
 	o := new(option)
 	o.specified = false
 	o.value = value
 	o.field = field
 	o.ctx = nil
-	o.Kind = getFieldKind(field)
-	o.Name = field.Name
+	o.Kind = getFieldKind(o.field)
+	o.Name = o.field.Name
 	o.Short = ""
 	o.Long = ""
 	o.Required = false
@@ -45,7 +42,7 @@ func newOption(value reflect.Value, field reflect.StructField) *option {
 	o.Format = ""
 	o.Handler = ""
 
-	tags := strings.Split(field.Tag.Get(tagName), ",")
+	tags := strings.Split(o.field.Tag.Get(tagName), ",")
 	key := ""
 	for _, v := range tags {
 		t := strings.TrimLeft(v, trimSpace)
@@ -79,18 +76,19 @@ func newOption(value reflect.Value, field reflect.StructField) *option {
 }
 
 func (o *option) validate(sc *SubCommand) error {
-	if o.Short != "" && len(o.Short) > 1 {
-		return fmt.Errorf(`"short" must be 1 character`)
-	} else if len(o.Short) == 1 && !isAlphaNumeric([]byte(o.Short)[0]) {
-		return fmt.Errorf(`"short" must be 0-9, a-z, A-Z`)
-	} else if len(o.Long) == 1 {
-		return fmt.Errorf(`"long" must be at least 2 characters`)
+	shortRule := regexp.MustCompile(`^[0-9a-zA-Z]$`)
+	longRule := regexp.MustCompile(`^[\w_]{2,}$`)
+	if o.Short != "" && !shortRule.MatchString(o.Short) {
+		return fmt.Errorf(`option "-%s" don't follow the rule (%s)`, o.Short, shortRule.String())
+	} else if o.Long != "" && !longRule.MatchString(o.Long) {
+		return fmt.Errorf(`option "--%s" don't follow the rule (%s)`, o.Short, longRule.String())
 	} else if o.Short == "" && o.Long == "" {
 		return fmt.Errorf(`neither "short" nor "long" is specified`)
 	} else if o.Format != "" && o.Handler != "" {
 		return fmt.Errorf(`"format" and "handler" are exclusive`)
 	} else if o.Handler != "" {
-		method := sc.cmd.MethodByName(o.Handler)
+		v := reflect.ValueOf(sc.cmd)
+		method := v.MethodByName(o.Handler)
 		if !method.IsValid() {
 			return fmt.Errorf(`"%s" doesn't have the method "%s"`, sc.Name, o.Handler)
 		} else if method.Type().NumIn() != 1 || method.Type().In(0).Kind() != reflect.String {
@@ -218,12 +216,8 @@ func (o *option) set(value string) error {
 		o.value.SetFloat(v)
 		o.specified = true
 	case String:
-		if o.value.CanSet() {
-			o.value.SetString(value)
-			o.specified = true
-		} else {
-			return fmt.Errorf(`field "%s" is unexported.`, o.Name)
-		}
+		o.value.SetString(value)
+		o.specified = true
 	case Time:
 		var err error
 		var t time.Time
