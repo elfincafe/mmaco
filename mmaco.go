@@ -1,9 +1,8 @@
 package mmaco
 
 import (
-	"bytes"
+	"fmt"
 	"reflect"
-	"regexp"
 )
 
 const (
@@ -27,42 +26,13 @@ const (
 	Float32
 	Float64
 	Time
-
-	ShortOpt ArgType = iota
-	LongOpt
-	Value
-	LongOptValue
 )
 
 type (
-	Kind    int
-	ArgType int
+	Kind int
 )
 
-func toSnakeCase(s string) string {
-	name := []byte{}
-	for _, c := range []byte(s) {
-		if c > 64 && c < 91 {
-			name = append(name, byte(95), c+32)
-		} else {
-			name = append(name, c)
-		}
-	}
-	name = regexp.MustCompile(`_{2,}`).ReplaceAll(name, []byte{95})
-	return string(bytes.Trim(name, "_"))
-}
-
-func isAlphaNumeric(b byte) bool {
-	if b >= 48 && b <= 57 { // 0 - 9
-		return true
-	} else if b >= 65 && b <= 90 { // A - Z
-		return true
-	} else if b >= 97 && b <= 122 { // a - z
-		return true
-	} else {
-		return false
-	}
-}
+var debugMode bool
 
 func getFieldKind(field reflect.StructField) Kind {
 	switch field.Type.Kind() {
@@ -103,4 +73,14 @@ func getFieldKind(field reflect.StructField) Kind {
 	default:
 		return Unknown
 	}
+}
+
+func Debug(msg string, args ...any) {
+	if !debugMode {
+		return
+	}
+	if len(args) > 0 {
+		msg = fmt.Sprintf(msg, args...)
+	}
+	println(msg)
 }

@@ -5,7 +5,7 @@ import "time"
 type (
 	Context struct {
 		cmd          *Command
-		subCmdName   string
+		subCmd       *SubCommand
 		subCmds      map[string]*SubCommand
 		scOrder      []string
 		loc          *time.Location
@@ -17,10 +17,10 @@ type (
 	}
 )
 
-func newContext(rawArgs []string) *Context {
+func newContext(cmdName string, rawArgs []string) *Context {
 	ctx := new(Context)
 	ctx.cmd = nil
-	ctx.subCmdName = ""
+	ctx.subCmd = nil
 	ctx.subCmds = map[string]*SubCommand{}
 	ctx.scOrder = []string{}
 	ctx.loc, _ = time.LoadLocation("")
@@ -30,10 +30,6 @@ func newContext(rawArgs []string) *Context {
 	ctx.rawArgs = rawArgs
 	ctx.args = []string{}
 	return ctx
-}
-
-func (ctx *Context) Command() *Command {
-	return ctx.cmd
 }
 
 func (ctx *Context) Location() *time.Location {
