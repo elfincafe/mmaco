@@ -87,14 +87,13 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 				}
 				if o.Handler == "" {
 					err = o.set(argVal)
-					skip = true
 				} else {
 					err = o.setByHandler(v, argVal)
-					skip = true
 				}
 				if err != nil {
 					return nil, err
 				}
+				skip = true
 				setFlg = true
 				break
 			} else if o.has(arg) {
