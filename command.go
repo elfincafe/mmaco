@@ -56,7 +56,7 @@ func (cmd *Command) parse() {
 		if tag == "" {
 			continue
 		}
-		opt := newOption(f, ft)
+		opt := newOption(f, ft, cmd.ctx)
 		cmd.opts = append(cmd.opts, opt)
 	}
 }

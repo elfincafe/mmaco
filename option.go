@@ -26,12 +26,12 @@ type (
 	}
 )
 
-func newOption(value reflect.Value, field reflect.StructField) *option {
+func newOption(value reflect.Value, field reflect.StructField, ctx *Context) *option {
 	o := new(option)
 	o.specified = false
 	o.value = value
 	o.field = field
-	o.ctx = nil
+	o.ctx = ctx
 	o.Kind = getFieldKind(o.field)
 	o.Name = o.field.Name
 	o.Short = ""
@@ -69,6 +69,48 @@ func newOption(value reflect.Value, field reflect.StructField) *option {
 		} else if key == "format" {
 			o.Format += "," + v // concatinate variable "v" not "t"
 		}
+	}
+	// Datetime Format
+	format := strings.ToLower(o.Format)
+	switch format {
+	case "layout":
+		o.Format = time.Layout
+	case "ansic":
+		o.Format = time.ANSIC
+	case "unixdate":
+		o.Format = time.UnixDate
+	case "rubydate":
+		o.Format = time.RubyDate
+	case "rfc822":
+		o.Format = time.RFC822
+	case "rfc822z":
+		o.Format = time.RFC822Z
+	case "rfc850":
+		o.Format = time.RFC850
+	case "rfc1123":
+		o.Format = time.RFC1123
+	case "rfc1123z":
+		o.Format = time.RFC1123Z
+	case "rfc3339":
+		o.Format = time.RFC3339
+	case "rfc3339nano":
+		o.Format = time.RFC3339Nano
+	case "kitchen":
+		o.Format = time.Kitchen
+	case "stamp":
+		o.Format = time.Stamp
+	case "stampmilli":
+		o.Format = time.StampMilli
+	case "stampmicro":
+		o.Format = time.StampMicro
+	case "stampnano":
+		o.Format = time.StampMicro
+	case "datetime":
+		o.Format = time.DateTime
+	case "dateonly":
+		o.Format = time.DateOnly
+	case "timeonly":
+		o.Format = time.TimeOnly
 	}
 
 	return o

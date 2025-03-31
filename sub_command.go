@@ -44,7 +44,7 @@ func (sc *SubCommand) parse() {
 		if tag == "" {
 			continue
 		}
-		opt := newOption(f, ft)
+		opt := newOption(f, ft, sc.ctx)
 		sc.ctx.subCmd.opts = append(sc.ctx.subCmd.opts, opt)
 	}
 }
