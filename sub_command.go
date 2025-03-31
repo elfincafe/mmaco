@@ -52,7 +52,6 @@ func (sc *SubCommand) parse() {
 func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 	var err error
 	v := reflect.ValueOf(sc.cmd)
-	in, out := []reflect.Value{}, []reflect.Value{}
 	params := []string{}
 	maxIdx := len(args) - 1
 	skip := false
@@ -68,17 +67,10 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 			if (o.isShort(arg) || o.isLong(arg)) && o.Kind == Bool {
 				if o.Handler == "" {
 					err = o.set("true")
-					if err != nil {
-						return nil, err
-					}
 					setFlg = true
 				} else {
-					in = []reflect.Value{reflect.ValueOf("true")}
-					out = v.MethodByName(o.Handler).Call(in)
+					err = o.setByHandler(v, "true")
 					setFlg = true
-					if !out[0].IsNil() {
-						err = out[0].Interface().(error)
-					}
 				}
 				if err != nil {
 					return nil, err
@@ -97,42 +89,32 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 				}
 				if o.Handler == "" {
 					err = o.set(argVal)
-					if err != nil {
-						return nil, err
-					}
 					setFlg = true
 					skip = true
 				} else {
-					in = []reflect.Value{reflect.ValueOf(argVal)}
-					out = v.MethodByName(o.Handler).Call(in)
+					err = o.setByHandler(v, argVal)
 					setFlg = true
 					skip = true
-					if !out[0].IsNil() {
-						err = out[0].Interface().(error)
-					}
 				}
 				if err != nil {
 					return nil, err
+				} else {
+					break
 				}
 			} else if o.has(arg) {
 				length := len("--" + o.Long + "=")
 				argVal := arg[length:]
 				if o.Handler == "" {
 					err = o.set(argVal)
-					if err != nil {
-						return nil, err
-					}
 					setFlg = true
 				} else {
-					in = []reflect.Value{reflect.ValueOf(argVal)}
-					out = v.MethodByName(o.Handler).Call(in)
+					err = o.setByHandler(v, argVal)
 					setFlg = true
-					if !out[0].IsNil() {
-						err = out[0].Interface().(error)
-					}
 				}
 				if err != nil {
 					return nil, err
+				} else {
+					break
 				}
 			}
 		}

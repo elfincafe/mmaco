@@ -3,7 +3,6 @@ package mmaco
 import (
 	"fmt"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -76,24 +75,25 @@ func newOption(value reflect.Value, field reflect.StructField) *option {
 }
 
 func (o *option) validate(sc *SubCommand) error {
-	shortRule := regexp.MustCompile(`^[0-9a-zA-Z]$`)
-	longRule := regexp.MustCompile(`^[\w_]{2,}$`)
-	if o.Short != "" && !shortRule.MatchString(o.Short) {
-		return fmt.Errorf(`option "-%s" don't follow the rule (%s)`, o.Short, shortRule.String())
-	} else if o.Long != "" && !longRule.MatchString(o.Long) {
-		return fmt.Errorf(`option "--%s" don't follow the rule (%s)`, o.Short, longRule.String())
+	if !o.value.CanSet() {
+	} else if o.Short != "" && !ruleShortOpt.MatchString(o.Short) {
+		return fmt.Errorf(`option "-%s" don't follow the rule (%s)`, o.Short, ruleShortOpt.String())
+	} else if o.Long != "" && !ruleLongOpt.MatchString(o.Long) {
+		return fmt.Errorf(`option "--%s" don't follow the rule (%s)`, o.Short, ruleLongOpt.String())
 	} else if o.Short == "" && o.Long == "" {
 		return fmt.Errorf(`neither "short" nor "long" is specified`)
 	} else if o.Format != "" && o.Handler != "" {
 		return fmt.Errorf(`"format" and "handler" are exclusive`)
 	} else if o.Handler != "" {
-		v := reflect.ValueOf(sc.cmd)
-		method := v.MethodByName(o.Handler)
-		if !method.IsValid() {
+		t := reflect.ValueOf(sc.cmd).Type()
+		method, exists := t.MethodByName(o.Handler)
+		if !exists {
 			return fmt.Errorf(`"%s" doesn't have the method "%s"`, sc.Name, o.Handler)
-		} else if method.Type().NumIn() != 1 || method.Type().In(0).Kind() != reflect.String {
+		} else if !method.IsExported() {
+			return fmt.Errorf(`method "%s" is unexported`, o.Handler)
+		} else if method.Type.NumIn() != 1 || method.Type.In(0).Kind() != reflect.String {
 			return fmt.Errorf(`"%s" must have only one argument, which is a string type`, o.Name)
-		} else if method.Type().NumOut() != 1 || method.Type().Out(0).Kind() != reflect.Interface {
+		} else if method.Type.NumOut() != 1 || method.Type.Out(0).Kind() != reflect.Interface {
 			return fmt.Errorf(`"%s" must have only one return value, which is a string type`, o.Name)
 		}
 	}
@@ -222,4 +222,15 @@ func (o *option) set(value string) error {
 	}
 	o.specified = true
 	return nil
+}
+
+func (o *option) setByHandler(v reflect.Value, value string) error {
+	var err error
+	in := []reflect.Value{reflect.ValueOf(value)}
+	out := v.MethodByName(o.Handler).Call(in)
+	if !out[0].IsNil() {
+		err = out[0].Interface().(error)
+	}
+	o.specified = true
+	return err
 }

@@ -22,6 +22,10 @@ type (
 )
 
 func New(name string) *Command {
+	// Rules (defined in mmaco.go)
+	ruleShortOpt = regexp.MustCompile(`^[0-9a-zA-Z]$`)
+	ruleLongOpt = regexp.MustCompile(`^[\w_]{2,}$`)
+
 	ctx := newContext(name, os.Args[1:])
 	cmd := new(Command)
 	ctx.cmd = cmd
