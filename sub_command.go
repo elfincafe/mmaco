@@ -67,14 +67,13 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 			if (o.isShort(arg) || o.isLong(arg)) && o.Kind == Bool {
 				if o.Handler == "" {
 					err = o.set("true")
-					setFlg = true
 				} else {
 					err = o.setByHandler(v, "true")
-					setFlg = true
 				}
 				if err != nil {
 					return nil, err
 				}
+				setFlg = true
 				break
 			} else if o.isShort(arg) && o.Kind != Bool {
 				argVal := ""
@@ -88,30 +87,28 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 				}
 				if o.Handler == "" {
 					err = o.set(argVal)
-					setFlg = true
 					skip = true
 				} else {
 					err = o.setByHandler(v, argVal)
-					setFlg = true
 					skip = true
 				}
 				if err != nil {
 					return nil, err
 				}
+				setFlg = true
 				break
 			} else if o.has(arg) {
 				length := len("--" + o.Long + "=")
 				argVal := arg[length:]
 				if o.Handler == "" {
 					err = o.set(argVal)
-					setFlg = true
 				} else {
 					err = o.setByHandler(v, argVal)
-					setFlg = true
 				}
 				if err != nil {
 					return nil, err
 				}
+				setFlg = true
 				break
 			}
 		}
