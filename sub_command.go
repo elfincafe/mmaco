@@ -74,9 +74,8 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 				}
 				if err != nil {
 					return nil, err
-				} else {
-					break
 				}
+				break
 			} else if o.isShort(arg) && o.Kind != Bool {
 				argVal := ""
 				if maxIdx > i {
@@ -98,9 +97,8 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 				}
 				if err != nil {
 					return nil, err
-				} else {
-					break
 				}
+				break
 			} else if o.has(arg) {
 				length := len("--" + o.Long + "=")
 				argVal := arg[length:]
@@ -113,9 +111,8 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 				}
 				if err != nil {
 					return nil, err
-				} else {
-					break
 				}
+				break
 			}
 		}
 		if !setFlg {
