@@ -140,6 +140,20 @@ func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
 			params = append(params, arg)
 		}
 	}
+	// check required
+	for _, o := range sc.opts {
+		if o.Required && !o.specified {
+			optName := ""
+			if o.Short != "" && o.Long == "" {
+				optName = "-" + o.Short
+			} else if o.Short == "" && o.Long != "" {
+				optName = "--" + o.Long
+			} else if o.Short != "" && o.Long != "" {
+				optName = fmt.Sprintf(`-%s, --%s`, o.Short, o.Long)
+			}
+			return nil, fmt.Errorf(`option "%s" is required`, optName)
+		}
+	}
 
 	return params, nil
 }

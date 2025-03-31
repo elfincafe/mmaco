@@ -137,87 +137,74 @@ func (o *option) set(value string) error {
 			return fmt.Errorf(`the value of option "%s" should be the int type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Int8:
 		v, err := strconv.ParseInt(value, 10, 8)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the int8 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Int16:
 		v, err := strconv.ParseInt(value, 10, 16)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the int16 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Int32:
 		v, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the int32 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Int64:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the int64 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Uint:
 		v, err := strconv.ParseUint(value, 10, 0)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Uint8:
 		v, err := strconv.ParseUint(value, 10, 8)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint8 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Uint16:
 		v, err := strconv.ParseUint(value, 10, 16)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint16 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Uint32:
 		v, err := strconv.ParseUint(value, 10, 32)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint32 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Uint64:
 		v, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint64 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Float32:
 		v, err := strconv.ParseFloat(value, 32)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the float32 type`, o.field.Name)
 		}
 		o.value.SetFloat(v)
-		o.specified = true
 	case Float64:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the float64 type`, o.field.Name)
 		}
 		o.value.SetFloat(v)
-		o.specified = true
 	case String:
 		o.value.SetString(value)
-		o.specified = true
 	case Time:
 		var err error
 		var t time.Time
@@ -230,9 +217,9 @@ func (o *option) set(value string) error {
 			return fmt.Errorf(`can't parse "%s" for the value of option "%s"`, value, o.field.Name)
 		}
 		o.value.Set(reflect.ValueOf(t))
-		o.specified = true
 	default:
 		return fmt.Errorf(`the field type of "%s" isn't supported`, o.field.Type.Name())
 	}
+	o.specified = true
 	return nil
 }
