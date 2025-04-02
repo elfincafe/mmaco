@@ -3,6 +3,7 @@ package mmaco
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 )
 
 const (
@@ -32,7 +33,11 @@ type (
 	Kind int
 )
 
-var debugMode bool
+var (
+	debugMode    bool
+	ruleShortOpt *regexp.Regexp
+	ruleLongOpt  *regexp.Regexp
+)
 
 func getFieldKind(field reflect.StructField) Kind {
 	switch field.Type.Kind() {

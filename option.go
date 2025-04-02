@@ -3,7 +3,6 @@ package mmaco
 import (
 	"fmt"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -76,24 +75,25 @@ func newOption(value reflect.Value, field reflect.StructField) *option {
 }
 
 func (o *option) validate(sc *SubCommand) error {
-	shortRule := regexp.MustCompile(`^[0-9a-zA-Z]$`)
-	longRule := regexp.MustCompile(`^[\w_]{2,}$`)
-	if o.Short != "" && !shortRule.MatchString(o.Short) {
-		return fmt.Errorf(`option "-%s" don't follow the rule (%s)`, o.Short, shortRule.String())
-	} else if o.Long != "" && !longRule.MatchString(o.Long) {
-		return fmt.Errorf(`option "--%s" don't follow the rule (%s)`, o.Short, longRule.String())
+	if !o.value.CanSet() {
+	} else if o.Short != "" && !ruleShortOpt.MatchString(o.Short) {
+		return fmt.Errorf(`option "-%s" don't follow the rule (%s)`, o.Short, ruleShortOpt.String())
+	} else if o.Long != "" && !ruleLongOpt.MatchString(o.Long) {
+		return fmt.Errorf(`option "--%s" don't follow the rule (%s)`, o.Short, ruleLongOpt.String())
 	} else if o.Short == "" && o.Long == "" {
 		return fmt.Errorf(`neither "short" nor "long" is specified`)
 	} else if o.Format != "" && o.Handler != "" {
 		return fmt.Errorf(`"format" and "handler" are exclusive`)
 	} else if o.Handler != "" {
-		v := reflect.ValueOf(sc.cmd)
-		method := v.MethodByName(o.Handler)
-		if !method.IsValid() {
+		t := reflect.ValueOf(sc.cmd).Type()
+		method, exists := t.MethodByName(o.Handler)
+		if !exists {
 			return fmt.Errorf(`"%s" doesn't have the method "%s"`, sc.Name, o.Handler)
-		} else if method.Type().NumIn() != 1 || method.Type().In(0).Kind() != reflect.String {
+		} else if !method.IsExported() {
+			return fmt.Errorf(`method "%s" is unexported`, o.Handler)
+		} else if method.Type.NumIn() != 1 || method.Type.In(0).Kind() != reflect.String {
 			return fmt.Errorf(`"%s" must have only one argument, which is a string type`, o.Name)
-		} else if method.Type().NumOut() != 1 || method.Type().Out(0).Kind() != reflect.Interface {
+		} else if method.Type.NumOut() != 1 || method.Type.Out(0).Kind() != reflect.Interface {
 			return fmt.Errorf(`"%s" must have only one return value, which is a string type`, o.Name)
 		}
 	}
@@ -137,87 +137,74 @@ func (o *option) set(value string) error {
 			return fmt.Errorf(`the value of option "%s" should be the int type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Int8:
 		v, err := strconv.ParseInt(value, 10, 8)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the int8 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Int16:
 		v, err := strconv.ParseInt(value, 10, 16)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the int16 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Int32:
 		v, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the int32 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Int64:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the int64 type`, o.field.Name)
 		}
 		o.value.SetInt(v)
-		o.specified = true
 	case Uint:
 		v, err := strconv.ParseUint(value, 10, 0)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Uint8:
 		v, err := strconv.ParseUint(value, 10, 8)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint8 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Uint16:
 		v, err := strconv.ParseUint(value, 10, 16)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint16 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Uint32:
 		v, err := strconv.ParseUint(value, 10, 32)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint32 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Uint64:
 		v, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the uint64 type`, o.field.Name)
 		}
 		o.value.SetUint(v)
-		o.specified = true
 	case Float32:
 		v, err := strconv.ParseFloat(value, 32)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the float32 type`, o.field.Name)
 		}
 		o.value.SetFloat(v)
-		o.specified = true
 	case Float64:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return fmt.Errorf(`the value of option "%s" should be the float64 type`, o.field.Name)
 		}
 		o.value.SetFloat(v)
-		o.specified = true
 	case String:
 		o.value.SetString(value)
-		o.specified = true
 	case Time:
 		var err error
 		var t time.Time
@@ -230,9 +217,20 @@ func (o *option) set(value string) error {
 			return fmt.Errorf(`can't parse "%s" for the value of option "%s"`, value, o.field.Name)
 		}
 		o.value.Set(reflect.ValueOf(t))
-		o.specified = true
 	default:
 		return fmt.Errorf(`the field type of "%s" isn't supported`, o.field.Type.Name())
 	}
+	o.specified = true
 	return nil
+}
+
+func (o *option) setByHandler(v reflect.Value, value string) error {
+	var err error
+	in := []reflect.Value{reflect.ValueOf(value)}
+	out := v.MethodByName(o.Handler).Call(in)
+	if !out[0].IsNil() {
+		err = out[0].Interface().(error)
+	}
+	o.specified = true
+	return err
 }
