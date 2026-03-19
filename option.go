@@ -116,7 +116,7 @@ func newOption(value reflect.Value, field reflect.StructField, ctx *Context) *op
 	return o
 }
 
-func (o *option) validate(sc *SubCommand) error {
+func (o *option) validate(sc *SubCommandBucket) error {
 	if !o.value.CanSet() {
 	} else if o.Short != "" && !ruleShortOpt.MatchString(o.Short) {
 		return fmt.Errorf(`option "-%s" don't follow the rule (%s)`, o.Short, ruleShortOpt.String())

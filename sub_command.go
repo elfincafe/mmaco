@@ -7,30 +7,30 @@ import (
 )
 
 type (
-	SubCommandInterface interface {
+	SubCommand interface {
 		Init()
-		Validate() error
 		Run(*Context) error
 	}
-	SubCommand struct {
+	SubCommandBucket struct {
 		Name string
 		Desc string
-		cmd  SubCommandInterface
+		cmd  SubCommand
 		ctx  *Context
 		opts []*option
 	}
 )
 
-func newSubCommand(s SubCommandInterface, name, desc string) *SubCommand {
-	sc := new(SubCommand)
-	sc.Name = name
-	sc.Desc = desc
-	sc.cmd = s
-	sc.opts = []*option{}
-	return sc
+func newSubCommand(s SubCommand, name, desc string) *SubCommandBucket {
+	scb := &SubCommandBucket{
+		Name: name,
+		Desc: desc,
+		cmd:  s,
+		opts: []*option{},
+	}
+	return scb
 }
 
-func (sc *SubCommand) parse() {
+func (sc SubCommandBucket) parse() {
 	// Field
 	v := reflect.ValueOf(sc.cmd).Elem()
 	t := v.Type()
@@ -49,7 +49,7 @@ func (sc *SubCommand) parse() {
 	}
 }
 
-func (sc *SubCommand) parseArgs(args []string) ([]string, error) {
+func (sc *SubCommandBucket) parseArgs(args []string) ([]string, error) {
 	var err error
 	v := reflect.ValueOf(sc.cmd)
 	params := []string{}

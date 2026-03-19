@@ -5,8 +5,8 @@ import "time"
 type (
 	Context struct {
 		cmd          *Command
-		subCmd       *SubCommand
-		subCmds      map[string]*SubCommand
+		subCmd       *SubCommandBucket
+		subCmds      map[string]*SubCommandBucket
 		scOrder      []string
 		loc          *time.Location
 		cmdStart     int64
@@ -21,7 +21,7 @@ func newContext(cmdName string, rawArgs []string) *Context {
 	ctx := new(Context)
 	ctx.cmd = nil
 	ctx.subCmd = nil
-	ctx.subCmds = map[string]*SubCommand{}
+	ctx.subCmds = map[string]*SubCommandBucket{}
 	ctx.scOrder = []string{}
 	ctx.loc, _ = time.LoadLocation("")
 	ctx.cmdStart = time.Now().UnixMicro()
