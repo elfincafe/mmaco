@@ -24,7 +24,7 @@ type (
 func New(name string) *Command {
 	// Rules (defined in mmaco.go)
 	ruleShortOpt = regexp.MustCompile(`^[0-9a-zA-Z]$`)
-	ruleLongOpt = regexp.MustCompile(`^[\w_]{2,}$`)
+	ruleLongOpt = regexp.MustCompile(`^[0-9a-zA-Z\-]{2,10}$`)
 
 	ctx := newContext(name, os.Args[1:])
 	cmd := new(Command)
@@ -61,27 +61,31 @@ func (cmd *Command) parse() {
 	}
 }
 
-func (cmd *Command) Add(subCmd SubCommandInterface, name, desc string) error {
+func (cmd *Command) Add(subCmd SubCommand, name, desc string) error {
 	if !cmd.subcmdRule.MatchString(name) {
 		return fmt.Errorf("sub command name is wrong (%s)", cmd.subcmdRule.String())
 	}
-	v := reflect.ValueOf(subCmd)
-	if v.Kind() != reflect.Pointer {
-		return fmt.Errorf(`sub command must be a pointer to struct`)
+	t := reflect.TypeOf(subCmd)
+	if t.Kind() != reflect.Pointer {
+		return fmt.Errorf(`pass a pointer type that implements the SubCommand interface`)
+	}
+	p := t.Elem()
+	if p.Kind() == reflect.Pointer {
+		return fmt.Errorf("double pointers are not allowed")
 	}
 	return cmd.addSubCmd(subCmd, name, desc, false)
 }
 
-func (cmd *Command) addSubCmd(subCmd SubCommandInterface, name, desc string, force bool) error {
-	sc := newSubCommand(subCmd, name, desc)
-	if sc.Name == helpCmdName && !force {
+func (cmd *Command) addSubCmd(subCmd SubCommand, name, desc string, force bool) error {
+	bucket := newSubCommand(subCmd, name, desc)
+	if bucket.Name == helpCmdName && !force {
 		return fmt.Errorf(`"help" is reserved`)
 	}
-	sc.ctx = cmd.ctx
-	if _, ok := cmd.ctx.subCmds[sc.Name]; !ok {
-		cmd.ctx.scOrder = append(cmd.ctx.scOrder, sc.Name)
+	bucket.ctx = cmd.ctx
+	if _, ok := cmd.ctx.subCmds[bucket.Name]; !ok {
+		cmd.ctx.scOrder = append(cmd.ctx.scOrder, bucket.Name)
 	}
-	cmd.ctx.subCmds[sc.Name] = sc
+	cmd.ctx.subCmds[bucket.Name] = bucket
 	return nil
 }
 
@@ -117,16 +121,26 @@ func (cmd *Command) route(args []string) (int, error) {
 func (cmd *Command) showReport(ctx *Context) {
 	subCmdTime := time.UnixMicro(cmd.ctx.subCmdFinish).Sub(time.UnixMicro(cmd.ctx.subCmdStart))
 	cmdTime := time.Since(time.UnixMicro(cmd.ctx.cmdStart))
+	idx := -1
+	for k, v := range ctx.rawArgs {
+		if v == ctx.subCmd.Name {
+			idx = k
+			break
+		}
+	}
+	gOpts := ctx.rawArgs[:idx]
+	sOpts := ctx.rawArgs[idx+1:]
 	buf := strings.Builder{}
 	buf.WriteString("\n")
 	buf.WriteString("------------------------------------------------------------\n")
-	buf.WriteString(" MMaco CLI Framework \n")
+	buf.WriteString(fmt.Sprintf(" %v Command\n", ctx.cmd.name))
 	buf.WriteString("------------------------------------------------------------\n")
-	buf.WriteString(fmt.Sprintf(" Name:     %v\n", ctx.subCmd.Name))
-	buf.WriteString(fmt.Sprintf(" Args:     %v\n", ctx.rawArgs))
-	buf.WriteString(fmt.Sprintf(" DateTime: %v\n", time.UnixMicro(cmd.ctx.cmdStart).In(cmd.ctx.loc)))
-	buf.WriteString(fmt.Sprintf(" ExecTime: %v\n", cmdTime))
-	buf.WriteString(fmt.Sprintf(" SubTime:  %v\n", subCmdTime))
+	buf.WriteString(fmt.Sprintf(" Options:    %v\n", strings.Join(gOpts, " ")))
+	buf.WriteString(fmt.Sprintf(" SubCommand: %v\n", ctx.subCmd.Name))
+	buf.WriteString(fmt.Sprintf(" SubOptions: %v\n", strings.Join(sOpts, " ")))
+	buf.WriteString(fmt.Sprintf(" DateTime:   %v\n", time.UnixMicro(cmd.ctx.cmdStart).In(cmd.ctx.loc)))
+	buf.WriteString(fmt.Sprintf(" ExecTime:   %v\n", cmdTime))
+	buf.WriteString(fmt.Sprintf(" SubTime:    %v\n", subCmdTime))
 	buf.WriteString("------------------------------------------------------------\n")
 	println(buf.String())
 }
@@ -175,12 +189,6 @@ func (cmd *Command) Run() error {
 
 	// Parse Argument for Sub Command options
 	cmd.ctx.args, err = cmd.ctx.subCmd.parseArgs(rowArgs[subCmdIdx+1:])
-	if err != nil {
-		return err
-	}
-
-	// Validate
-	err = cmd.ctx.subCmd.cmd.Validate()
 	if err != nil {
 		return err
 	}
