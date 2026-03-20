@@ -23,8 +23,8 @@ type (
 
 func New(name string) *Command {
 	// Rules (defined in mmaco.go)
-	ruleShortOpt = regexp.MustCompile(`^[0-9a-zA-Z]$`)
-	ruleLongOpt = regexp.MustCompile(`^[0-9a-zA-Z\-]{2,10}$`)
+	ruleShortOpt = regexp.MustCompile(`^[\da-zA-Z]$`)
+	ruleLongOpt = regexp.MustCompile(`^[\da-zA-Z][\w\-]{0,13}[\da-zA-Z]$`)
 
 	ctx := newContext(name, os.Args[1:])
 	cmd := new(Command)
@@ -32,7 +32,7 @@ func New(name string) *Command {
 	cmd.ctx = ctx
 	cmd.name = name
 	cmd.opts = []*option{}
-	cmd.subcmdRule = regexp.MustCompile(`^[a-z][\da-z_\-:]*[\da-z]$`)
+	cmd.subcmdRule = regexp.MustCompile(`^[\da-z][\da-z_\-]{0,13}[\da-z]$`)
 	cmd.debug = false
 	cmd.report = false
 	cmd.help = false
